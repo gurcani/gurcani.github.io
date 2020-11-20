@@ -1,0 +1,31 @@
+---
+layout : post
+title : Using Ctypes to call a C function, which calls back a python function.
+date : 2020-11-20
+categories : python ctypes coding
+---
+
+# Motivation
+
+There are many cases where a C\/C++ library wants to call a user specified function, 
+and it is easy to find yourself in a situation where your python code wants to call such a library.
+There are also situations where you may want to simply be able to go back and forth between c and python
+for various reasons, like you want to plot something, which is much easier in python but do some number crunching
+which may be better done in c or fortran.
+
+# Ctypes
+
+Ctypes is my preferred way of calling C functions or libraries from within python. It's simple and flexible. It does not rely on 
+an automated translation tool, and consequently it is probably not the ideal approach for wrapping all the functions of a huge library
+since you need to (more or less) wrap each function by hand.
+
+## Calling a C Function From Python
+
+Consider the following C code, that we save as "fcpytest.c"
+
+	 	#include <stdio.h>
+	void fcpytest(){
+	  printf("Hello World\n");
+	};
+
+Which can be compiled as a shared library using:

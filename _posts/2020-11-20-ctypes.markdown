@@ -1,0 +1,199 @@
+---
+layout : post
+title : Using Ctypes to Call a C Function That Calls Back a Python Function.
+date : 2020-11-20
+categories : python ctypes coding
+---
+
+## Motivation
+
+There are many cases where a C\/C++ library wants to call a user specified function, 
+and it is easy to find yourself in a situation where your python code wants to call such a library.
+There are also situations where you may want to simply be able to go back and forth between c and python
+for various reasons, like you want to plot something, which is much easier in python but do some number crunching
+which may be better done in C or fortran.
+
+## Ctypes
+
+Ctypes is my preferred way of calling C functions or libraries from within python. It's simple and flexible. It does not rely on 
+an automated translation tool, and consequently it is probably not the ideal approach for wrapping all the functions of a huge library
+since you need to (more or less) wrap each function by hand.
+
+### Calling a Simple C Function From Python
+
+Consider the following C code:
+
+**fcpytest.c:**
+```c
+#include <stdio.h>
+void fcpytest(){
+  printf("Hello World\n");
+};
+```
+
+Which can be compiled as a shared library using:
+
+```sh
+gcc -c -fpic fcpytest.c
+gcc -shared -o libcpytest.so fcpytest.o
+```
+
+which generates a shared c library called **libcpytest.so**, callable from pyhton using ctypes as:
+```py
+from ctypes import cdll
+libcpy = cdll.LoadLibrary('./libcpytest.so')
+libcpy.fcpytest()
+```
+
+### Passing C Structures
+
+C uses structures a lot. You can pass them back to python using pointers. You can also reconstruct the C structure
+in python using the **Structure** class of ctypes. Here is a simple example of passing by pointers:
+
+**fcpytest.c:**
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct fcpy_pars_{
+  int nx, ny;
+} fcpy_pars;
+
+fcpy_pars* init_pars(int nx, int ny){
+  fcpy_pars *pars=malloc(sizeof(fcpy_pars));
+  pars->nx=nx;
+  pars->ny=ny;
+  return pars;
+}
+
+void fcpytest(fcpy_pars *pars){
+  printf("c: nx=%i,ny=%i\n",pars->nx,pars->ny);
+};
+```
+
+which after compiling as before can be called from within python as:
+```py
+from ctypes import cdll,c_int,c_void_p
+libcpy = cdll.LoadLibrary('./libcpytest.so')
+libcpy.init_pars.argtypes=[c_int,c_int]
+libcpy.init_pars.restype=c_void_p
+libcpy.fcpytest.argtypes=[c_void_p]
+Nx,Ny=3,5
+cptr=libcpy.init_pars(Nx,Ny)
+libcpy.fcpytest(cptr)
+```
+
+If, instead of passing it back to C, we want to access the structure from python as well, we can do so using the **Structure** class as follows:
+
+```py
+from ctypes import Structure
+class fcpy_pars(Structure):
+  _fields_=[("nx",c_int),("ny",c_int)]
+
+pars=fcpy_pars.from_address(cptr)
+print("py: nx=",pars.nx,"ny=",pars.ny)
+```
+
+### Passing a Python Function That can be Called Back from C
+
+Let's try to pass a python function that will be saved in a C structure that we can call later. We also use some numpy magic to pass a complex numpy array as its argument. Imagine that we have a python function:
+
+```py
+def fntest(y,t):
+    print('test function called')
+    print('t=',t)
+    return np.abs(y)**2*np.exp(t)
+```
+
+Where we assume that y is a complex numpy array of some shape and t is a **float** in python (i.e. **double** in C). 
+In fact for some reason getting python to return something seems to be more complicated than filling a preallocated array. So we first need to define a python wrapper function that takes the return array also as a pointer argument
+instead of actually returning it. Something like:
+
+```py
+import numpy as np
+def fntest_p(y_p,t,n,res_p):
+    y=np.ctypeslib.as_array(y_p,shape=(2*n,)).view(dtype=complex).reshape((n,))
+    res=np.ctypeslib.as_array(res_p,shape=(n,))
+    res[:]=fntest(y,t)
+```
+
+This is the function we will call from C, which will in turn call the python function that we want to call.
+
+Let us now see how this works in C:
+
+**fcpytest.c:**
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <complex.h>
+
+typedef struct fcpy_pars_{
+  int n;
+  void (*fn)(complex *, double, int, double *);
+} fcpy_pars;
+
+fcpy_pars* init_pars(int n,void (*fn)(complex *, double, int, double *)){
+  fcpy_pars *pars=malloc(sizeof(fcpy_pars));
+  pars->n=n;
+  pars->fn=fn;
+  return pars;
+}
+
+void fcpytest(fcpy_pars *pars, complex *y, double t, double *res){
+  pars->fn(y,t,pars->n,res);
+}
+```
+This can actually be written in many different ways. The fact that we used a **complex \* ** pointer is
+basically irrelavant for this example, but can be useful if we wanto to manipulate the array in C as well.
+
+Finally if we put everything together in a single python script:
+
+**test.py:**
+```py
+import numpy as np
+from ctypes import cdll,c_int,c_void_p,c_double,CFUNCTYPE,POINTER
+from numpy.ctypeslib import ndpointer
+
+def fntest(y,t):
+    print('test function called')
+    print('t=',t)
+    return np.abs(y)**2*np.exp(t)
+
+def fntest_p(y_p,t,n,res_p):
+    y=np.ctypeslib.as_array(y_p,shape=(2*n,)).view(dtype=complex).reshape((n,))
+    res=np.ctypeslib.as_array(res_p,shape=(n,))
+    res[:]=fntest(y,t)
+
+cmpfunc=CFUNCTYPE(None,POINTER(c_double), c_double, c_int, POINTER(c_double))
+ftest = cmpfunc(fntest_p)
+libcpy = cdll.LoadLibrary('./libcpytest.so')
+libcpy.init_pars.argtypes=[c_int,cmpfunc]
+libcpy.init_pars.restype=c_void_p
+
+libcpy.fcpytest.argtypes=[c_void_p,ndpointer(dtype=complex), c_double, ndpointer(dtype=float)]
+
+N=20
+cptr=libcpy.init_pars(N,ftest)
+x=np.linspace(-np.pi,np.pi,N)
+y=np.exp(1j*x)
+res=np.zeros(N)
+t=0.5
+libcpy.fcpytest(cptr,y,t,res)
+print(res)
+```
+When we run it, we get:
+
+    test function called
+    t= 0.5
+    [1.64872127 1.64872127 1.64872127 1.64872127 1.64872127 1.64872127
+     1.64872127 1.64872127 1.64872127 1.64872127 1.64872127 1.64872127
+     1.64872127 1.64872127 1.64872127 1.64872127 1.64872127 1.64872127
+     1.64872127 1.64872127]
+    
+It seems one can use PYFUNCTYPE instead of CFUNCTYPE. Difference having something to do with releasing the 
+GIL or not.
+
+In any case, the simple method for calling python functions from C, or C functions from python and all kinds of
+nesting of those (i.e. python functions calling C functions calling python functions etc.) is always the same. For smoother integration with python one should probably use the [python library](https://docs.python.org/3/extending/extending.html). whereas tools like [swig](http://www.swig.org/), [cython](https://cython.org/) or [cffi](https://cffi.readthedocs.io), which may provide better automation or simpler integration. Nonetheless in terms of its ease of use and flexibility the above method remains my favorite.
+
+
