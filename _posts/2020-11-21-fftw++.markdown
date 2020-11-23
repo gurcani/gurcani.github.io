@@ -1,0 +1,160 @@
+---
+layout : post
+title : Trying to Figure Out How to Use FFTW++ (1D)
+date : 2020-11-21
+mathjax: true
+comments: true
+categories : python ctypes coding
+---
+
+## Motivation
+
+[FFTW++](https://github.com/dealias/fftwpp) is an implicit dealiasing library for turbulence simulations. It provides a C++ interface to [FFTW](http://www.fftw.org/) and a number of
+convolution classes and routines. It uses multithreading as well as MPI based parallelization. However, unfortunately it is poorly documented. So in this post
+I will report my attempts at trying to understand how it actually works, what it actually computes and what are the different options we have etc. Obviously I don't
+claim to have any kind of mastery of its use and therefore the information I provide can be erroneous. If you find that this is the case, let me know and I will try to correct.
+
+## Basic Use
+
+[//]: #### Some Notes
+[//]: #- **xcompact** , **ycompact** etc. are boolean variables that determine if the size of the problem in that direction includes the nyquist frequency or not.
+[//]: #- For instance if we have `Nx,Ny=64,64` and we look at Hermitian symmetric problem so that `Nyh=Ny/2+1=33`. We either have `xcompact=ycompact=True`, in which case
+[//]: #the size of the problem becomes `nx,ny=63,32` or it is `xcompact=ycompact=False`, in which case we have `nx,ny=64,33` as in usual fftw.
+
+### 1D Convolutions
+
+While fftw++ provides the basic functionality of the fftw library, its primary use is computing implicitly dealiased convolutions. So let's first try to figure out how basic 1D convolutions work.
+
+There are two kinds of 1D convolutions provided in fftw++. Those are:
+
+#### 1d non-centered complex convolution: [examplecconv.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv.cc)
+
+The FFTW++ library has a python wrapper. Even though it covers only the basic functionality of the library, it is useful for demonstration purposes.
+
+Changing our working directory **fftw++-x.xx/wrappers/**, we can run python functions that can import the wrapper library fftwpp.
+
+In order to see how the 1-D non-centered convolution works, we repeat the exercise in the example file [examplecconv.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv.cc) in python.
+Let's start by intializing and displaying f ang g.
+
+```python
+import fftwpp
+import numpy as np
+m=8
+f=np.array([l+1j*(l+1) for l in range(m)])
+g=np.array([l+1j*(2*l+1) for l in range(m)])
+print("f=",f)
+print("g=",g)
+```
+
+which gives:
+
+    f= [0.+1.j 1.+2.j 2.+3.j 3.+4.j 4.+5.j 5.+6.j 6.+7.j 7.+8.j]
+    g= [0. +1.j 1. +3.j 2. +5.j 3. +7.j 4. +9.j 5.+11.j 6.+13.j 7.+15.j]
+
+Initializing and Computing the convolutiong using fftw++ and displaying the result
+
+```python
+c=fftwpp.Convolution(f.shape)
+c.convolve(f,g)
+h=f.copy()
+print("h=",h)
+```
+
+with the output:
+
+    h= [  -1.  +0.j   -5.  +2.j  -13.  +9.j  -26. +24.j  -45. +50.j  -71. +90.j
+     -105.+147.j -148.+224.j]
+
+reinitializing f and g as before and computing the convolution by hand for comparison
+
+```python
+f=np.array([l+1j*(l+1) for l in range(m)])
+g=np.array([l+1j*(2*l+1) for l in range(m)])
+h2=np.zeros_like(g)
+for j in range(m):
+    for l in range(j+1):
+        h2[j]+=g[j-l]*f[l]
+print("h2=",h2)
+```
+
+finally gives:
+
+    h2= [  -1.  +0.j   -5.  +2.j  -13.  +9.j  -26. +24.j  -45. +50.j  -71. +90.j
+     -105.+147.j -148.+224.j]
+
+Which is the same as h above. The comparison suggests that the **fftwpp.Convolution** (which calls the C++ object **ImplicitConvolution**) actually computes:
+
+$$\begin{equation}\label{eq:cconv}\tag{1}
+h=\sum_{l=0}^{j} g_{l-j} f_l
+\end{equation}$$
+
+Note that this is also equvalent to:
+
+```python
+np.convolve(f,g)[:m]
+```
+
+#### 1d centered Hermitian-symmetric complex convolution: [exampleconv.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv.cc)
+
+Centered Hermitian-symmetric complex convolutions in FFTW++ are computed by the class **ImplicitHConvolution**, which is wrapped to the python class fftwpp.HConvolution.
+
+Starting with the same f and g as above (and the same import commands), the Hermitian-symmetric convolution:
+
+```python
+c=fftwpp.HConvolution(f.shape)
+c.convolve(f,g)
+h=f.copy()
+print("h=",h)
+```
+gives:
+
+    h= [1022.  +0.j  828. -12.j  635. -15.j  449.  -6.j  275. +18.j  118. +60.j
+     -17.+123.j -125.+210.j]
+
+Note that the result is totally different from the previous complex convolution even though f and g are the same. This is basically because fftw++ interprets f and g as the m=N/2+1 
+complex Fourier coefficients of a real to complex Fourier transform of a real vector of size N. We can for example obtain the same result using the following python code 
+(again, after reinitializing f and g as before):
+
+rfft=np.fft.rfft
+irfft=np.fft.irfft
+
+```python
+fr=irfft(f,3*m)
+gr=irfft(g,3*m)
+h=rfft(fr*gr)[0:m+1]*3*m
+print('h=',h)
+```
+gives the same result:
+
+    h= [1022.  +0.j  828. -12.j  635. -15.j  449.  -6.j  275. +18.j  118. +60.j
+     -17.+123.j -125.+210.j]
+
+and if we want to compute the same by hand, we actually need to explicitly extend the vectors as shown in figure.
+
+![fftwpp_extended](images/fftwpp_extended.png)
+
+```python
+fex=np.zeros(3*m,dtype=complex)
+gex=np.zeros(3*m,dtype=complex)
+
+fex[0:m]=f
+gex[0:m]=g
+fex[2*m+1:]=np.flipud(f[1:].conj())
+gex[2*m+1:]=np.flipud(g[1:].conj())
+fex[0]=fex[0].real
+gex[0]=gex[0].real
+
+h=np.zeros_like(f)
+
+for j in range(h.shape[0]):
+    for l in range(3*m):
+        h[j]+=gex[j-l]*fex[l]
+print('h=',h)
+```
+
+which gives again:
+
+    h= [1022.  +0.j  828. -12.j  635. -15.j  449.  -6.j  275. +18.j  118. +60.j
+     -17.+123.j -125.+210.j]
+
+By default the python wrapper seems to use **compact=True**. The behavior described above therefore corresponds to this default choice.
