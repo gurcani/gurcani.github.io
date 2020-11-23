@@ -19,8 +19,8 @@ layout: default
     {{ content }}
   </div>
   {% include mathjax.html %}
-  {%- if site.disqus.shortname -%}
-    {%- include disqus_comments.html -%}
+  {%- if site.github.shortname -%}
+    {%- include github_comments.html -%}
   {%- endif -%}
 
   <a class="u-url" href="{{ page.url | relative_url }}" hidden></a>
