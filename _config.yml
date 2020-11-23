@@ -35,6 +35,8 @@ github_username:  gurcani
 
 # Build settings
 theme: minima
+layout: single
+classes: wide
 plugins:
   - jekyll-feed
 
