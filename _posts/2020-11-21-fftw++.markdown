@@ -131,7 +131,7 @@ gives the same result:
 
 and if we want to compute the same by hand, we actually need to explicitly extend the vectors as shown in figure.
 
-![fftwpp_extended](images/fftwpp_extended.png)
+![fftwpp_extended](/assets/images/fftwpp_extended.png)
 
 ```python
 fex=np.zeros(3*m,dtype=complex)
