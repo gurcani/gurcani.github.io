@@ -115,10 +115,10 @@ Note that the result is totally different from the previous complex convolution 
 complex Fourier coefficients of a real to complex Fourier transform of a real vector of size N. We can for example obtain the same result using the following python code 
 (again, after reinitializing f and g as before):
 
+```python
 rfft=np.fft.rfft
 irfft=np.fft.irfft
 
-```python
 fr=irfft(f,3*m)
 gr=irfft(g,3*m)
 h=rfft(fr*gr)[0:m+1]*3*m
