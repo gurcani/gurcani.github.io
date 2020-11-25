@@ -21,9 +21,9 @@ since you need to (more or less) wrap each function by hand.
 
 ### Calling a Simple C Function From Python
 
-Consider the following C code:
+Consider the following C code (see [cpytest](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/cpytest)):
 
-[**fcpytest.c:**](/assets/examples/cpytest/fcpytest.c)
+**fcpytest.c:**
 ```c
 #include <stdio.h>
 void fcpytest(){
@@ -40,7 +40,7 @@ gcc -shared -o libcpytest.so fcpytest.o
 
 which generates a shared c library called **libcpytest.so**, callable from pyhton using ctypes as:
 
-[**test.py:**](/assets/examples/cpytest/test.py)
+**test.py:**
 ```py
 from ctypes import cdll
 libcpy = cdll.LoadLibrary('./libcpytest.so')

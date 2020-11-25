@@ -34,7 +34,7 @@ The FFTW++ library has a python wrapper. Even though it covers only the basic fu
 Changing our working directory **fftw++-x.xx/wrappers/**, we can run python functions that can import the wrapper library fftwpp.
 
 In order to see how the 1-D non-centered convolution works, we repeat the exercise in the example file [examplecconv.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv.cc) in python.
-Let's start by intializing and displaying f ang g (see [example_cconv.py](/assets/examples/fftw++/example_cconv.py) ).
+Let's start by intializing and displaying f ang g (see [example_cconv.py](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/fftw%2B%2B/example_cconv.py) ).
 
 ```python
 import fftwpp
@@ -98,7 +98,7 @@ np.convolve(f,g)[:m]
 
 Centered Hermitian-symmetric complex convolutions in FFTW++ are computed by the class **ImplicitHConvolution**, which is wrapped to the python class fftwpp.HConvolution.
 
-Starting with the same f and g as above (and the same import commands), the Hermitian-symmetric convolution (see [example_conv.py](/assets/examples/fftw++/example_conv.py) ):
+Starting with the same f and g as above (and the same import commands), the Hermitian-symmetric convolution (see [example_conv.py](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/fftw%2B%2B/example_conv.py) ):
 
 ```python
 c=fftwpp.HConvolution(f.shape)

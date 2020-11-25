@@ -11,7 +11,7 @@ categories : python ctypes coding
 
 ### 2d non-centered complex convolution: [examplecconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv2.cc).
 
-It appears that 2d non-centered convolution is a simple generalization of the 1d non-centered convolution. Let's see how it works in python (see [example_cconv2.py](/assets/examples/fftw++/example_cconv2.py) ):
+It appears that 2d non-centered convolution is a simple generalization of the 1d non-centered convolution. Let's see how it works in python (see [example_cconv2.py](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/fftw%2B%2B/example_cconv2.py) ):
 
 ```python
 import fftwpp
@@ -75,7 +75,7 @@ h2= [[  0.  +0.j  -1.  +0.j  -4.  +0.j -10.  +0.j]
 
 Upon examining [exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc) in some
 detail,it becomes clear that we need to Hermitian symmetrize the input array in order to reproduce what it does. We can take a look at the **HermitianSymmetrizeX** function in [convolution.h](https://github.com/dealias/fftwpp/blob/master/convolution.h) in order to understand how the fftw++ library symmetrizes the input array. 
-We can rewrite (at least for our practical purposes) this function in python as follows (see [example_conv2.py](/assets/examples/fftw++/example_conv2.py) ):
+We can rewrite (at least for our practical purposes) this function in python as follows (see [example_conv2.py](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/fftw%2B%2B/example_conv2.py) ):
 
 ```python
 def hermitian_symmetrize(f,x0=-1):
