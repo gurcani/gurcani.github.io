@@ -23,7 +23,7 @@ since you need to (more or less) wrap each function by hand.
 
 Consider the following C code:
 
-**fcpytest.c:**
+[**fcpytest.c:**](/assets/examples/cpytest/fcpytest.c)
 ```c
 #include <stdio.h>
 void fcpytest(){
@@ -39,6 +39,8 @@ gcc -shared -o libcpytest.so fcpytest.o
 ```
 
 which generates a shared c library called **libcpytest.so**, callable from pyhton using ctypes as:
+
+[**test.py:**](/assets/examples/cpytest/test.py)
 ```py
 from ctypes import cdll
 libcpy = cdll.LoadLibrary('./libcpytest.so')

@@ -34,7 +34,7 @@ The FFTW++ library has a python wrapper. Even though it covers only the basic fu
 Changing our working directory **fftw++-x.xx/wrappers/**, we can run python functions that can import the wrapper library fftwpp.
 
 In order to see how the 1-D non-centered convolution works, we repeat the exercise in the example file [examplecconv.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv.cc) in python.
-Let's start by intializing and displaying f ang g.
+Let's start by intializing and displaying f ang g (see [example_cconv.py](/assets/examples/fftw++/example_cconv.py) ).
 
 ```python
 import fftwpp
@@ -98,7 +98,7 @@ np.convolve(f,g)[:m]
 
 Centered Hermitian-symmetric complex convolutions in FFTW++ are computed by the class **ImplicitHConvolution**, which is wrapped to the python class fftwpp.HConvolution.
 
-Starting with the same f and g as above (and the same import commands), the Hermitian-symmetric convolution:
+Starting with the same f and g as above (and the same import commands), the Hermitian-symmetric convolution (see [example_conv.py](/assets/examples/fftw++/example_conv.py) ):
 
 ```python
 c=fftwpp.HConvolution(f.shape)
@@ -121,7 +121,7 @@ irfft=np.fft.irfft
 
 fr=irfft(f,3*m)
 gr=irfft(g,3*m)
-h=rfft(fr*gr)[0:m+1]*3*m
+h=rfft(fr*gr)[0:m]*3*m
 print('h=',h)
 ```
 gives the same result:
@@ -157,4 +157,14 @@ which gives again:
     h= [1022.  +0.j  828. -12.j  635. -15.j  449.  -6.j  275. +18.j  118. +60.j
      -17.+123.j -125.+210.j]
 
-By default the python wrapper seems to use **compact=True**. The behavior described above therefore corresponds to this default choice.
+By default the python wrapper seems to use **compact=True**. The behavior described above therefore corresponds to this default choice. 
+Note that we can pad up to 4*m (instead of 3*m) as above and both the rfft and the explicit convolution calculation still gives exactly the same result. 
+After filling the **fex** and **gex** vectors as shown (with the padding and all), we can also use **h=fft(ifft(fex)*ifft(gex))[0:m]** which also gives exactly the same result.
+
+Finally, we can actually fftshift the input vectors in order to have **f[0]**, **fex[0]** etc. at the center of the domain and since these are cyclic convolutions, they still give the same result. In fact the authors of fftw++ [^bm] seems to promote this convention, with the convolution defined as:
+
+$$\begin{equation}\label{eq:conv}\tag{2}
+h=\sum_{l=0}^{N-1} g_{l-j} f_l
+\end{equation}$$
+
+[^bm]:Bowman, J.C., Roberts, M.: Efficient dealiased convolutions without padding. SIAM J. Sci. Comput. 33(1), 386–406 (2011) [link](https://doi.org/10.1137/100787933)

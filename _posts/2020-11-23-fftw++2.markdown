@@ -1,0 +1,142 @@
+---
+layout : post
+title : Trying to Figure Out How to Use FFTW++ (2D)
+date : 2020-11-23
+mathjax: true
+comments: true
+categories : python ctypes coding
+---
+
+## 2D Convolutions
+
+### 2d non-centered complex convolution: [examplecconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/examplecconv2.cc).
+
+It appears that 2d non-centered convolution is a simple generalization of the 1d non-centered convolution. Let's see how it works in python (see [example_cconv2.py](/assets/examples/fftw++/example_cconv2.py) ):
+
+```python
+import fftwpp
+import numpy as np
+mx,my=4,4
+
+f=np.array([[l+1j*m for l in range(mx)] for m in range(my)]).T
+g=np.array([[2*l+1j*(m+1) for l in range(mx)] for m in range(my)]).T
+
+c=fftwpp.Convolution(f.shape)
+fc,gc=f.copy(),g.copy()
+c.convolve(fc,gc)
+h=fc
+
+print("f=",f)
+print("g=",g)
+print("h=",np.rint(h.real)+1j*np.rint(h.imag))
+```
+
+gives:
+
+```
+f= [[0.+0.j 0.+1.j 0.+2.j 0.+3.j]
+ [1.+0.j 1.+1.j 1.+2.j 1.+3.j]
+ [2.+0.j 2.+1.j 2.+2.j 2.+3.j]
+ [3.+0.j 3.+1.j 3.+2.j 3.+3.j]]
+g= [[0.+1.j 0.+2.j 0.+3.j 0.+4.j]
+ [2.+1.j 2.+2.j 2.+3.j 2.+4.j]
+ [4.+1.j 4.+2.j 4.+3.j 4.+4.j]
+ [6.+1.j 6.+2.j 6.+3.j 6.+4.j]]
+h= [[  0.  +0.j  -1.  +0.j  -4.  +0.j -10.  +0.j]
+ [  0.  +1.j  -2.  +5.j  -8. +12.j -20. +22.j]
+ [  2.  +3.j   1. +15.j  -6. +36.j -22. +66.j]
+ [  8.  +6.j  12. +30.j   8. +72.j  -8.+132.j]]
+```
+
+which is equivalent to:
+
+```python
+h2=np.zeros_like(g)
+
+for jx in range(mx):
+    for jy in range(my):
+     for lx in range(jx+1):
+         for ly in range(jy+1):
+             h2[jx,jy]+=g[jx-lx,jy-ly]*f[lx,ly]
+
+print("h2=",h2)
+```
+
+and gives:
+
+```
+h2= [[  0.  +0.j  -1.  +0.j  -4.  +0.j -10.  +0.j]
+ [  0.  +1.j  -2.  +5.j  -8. +12.j -20. +22.j]
+ [  2.  +3.j   1. +15.j  -6. +36.j -22. +66.j]
+ [  8.  +6.j  12. +30.j   8. +72.j  -8.+132.j]]
+```
+
+### 2D centered Hermitian-symmetric convolution: [exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc)
+
+Upon examining [exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc) in some
+detail,it becomes clear that we need to Hermitian symmetrize the input array in order to reproduce what it does. We can take a look at the **HermitianSymmetrizeX** function in [convolution.h](https://github.com/dealias/fftwpp/blob/master/convolution.h) in order to understand how the fftw++ library symmetrizes the input array. 
+We can rewrite (at least for our practical purposes) this function in python as follows (see [example_conv2.py](/assets/examples/fftw++/example_conv2.py) ):
+
+```python
+def hermitian_symmetrize(f,x0=-1):
+    g=f.copy()
+    if (x0==-1) : 
+        x0=int(g.shape[0]/2)
+    g[x0,0]=g[x0,0].real
+    for l in range(1,x0+1):
+        g[x0-l,0]=g[x0+l,0].conj()
+    return g
+```
+
+consider an arbitrary complex vector **g**, the symmetrized version is computed by setting the bottom (i.e. y=0) elements to the left of the origin to be equal to conjugates of the elements to the right of the origin as shown in the figure below.
+
+[![fftwpp_2dsym](/assets/images/fftwpp_2dsym.svg)](/assets/images/fftwpp_2dsym.svg)
+
+Once symmetrized this way we can actually compute the convolution as before. However in order to compute it using **irfft2** and **rfft2** functions of **numpy.fft** we need to get the shifting and the padding exactly right. The following snippet of python code achieves this.
+
+```python
+gsym=hermitian_symmetrize(g)
+fsym=hermitian_symmetrize(f)
+
+nx_p=int(np.ceil(nx*3/2))
+my_p=int(np.ceil(my*3/2))
+
+gsc=np.zeros((nx_p,my_p),dtype=complex)
+fsc=np.zeros((nx_p,my_p),dtype=complex)
+
+gsc[np.r_[:mx,nx_p-mx+1:nx_p],:my]=gsym[np.r_[mx-1:nx,:mx-1],:]
+fsc[np.r_[:mx,nx_p-mx+1:nx_p],:my]=fsym[np.r_[mx-1:nx,:mx-1],:]
+
+rfft2=np.fft.rfft2
+irfft2=np.fft.irfft2
+
+fr=irfft2(fsc)
+gr=irfft2(gsc)
+
+h2=rfft2(fr*gr)*np.prod(fr.shape)
+h2=(np.rint(h2.real)+1j*np.rint(h2.imag))[np.r_[-mx+1:mx],:my]
+print('h2=',h2)
+```
+
+which spits out:
+
+```
+h2= [[ 696.+240.j  483.+306.j  302.+300.j  125.+240.j]
+ [ 988.+205.j  722.+309.j  464.+345.j  211.+321.j]
+ [1328.+125.j  993.+289.j  658.+388.j  329.+424.j]
+ [1698.  +0.j 1292.+246.j  886.+429.j  487.+549.j]
+ [1328.-125.j 1063.+127.j  798.+334.j  539.+496.j]
+ [ 988.-205.j  846. +41.j  704.+257.j  567.+443.j]
+ [ 696.-240.j  653. -12.j  610.+198.j  571.+390.j]]
+```
+
+as before. Step by step explanation of how this works can be seen in the figure below. 
+
+[![fftwpp_2dall](/assets/images/fftwpp_2dall.svg)](/assets/images/fftwpp_2dall.svg)
+
+similarly we can also expand the arrays in the y direction in hermitian symmetric way, and the compute 
+the convolutions either using complex fft2's or by hand.
+
+Note that expanded complex arrays should have the form shown below for the vector *g*.
+[![fftwpp_2dex](/assets/images/fftwpp_2dex.svg)](/assets/images/fftwpp_2dex.svg)
+
