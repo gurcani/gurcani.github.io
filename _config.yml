@@ -35,7 +35,7 @@ github_username:  gurcani
 email:  ozgur.gurcan@lpp.polytechnique.fr
 
 # Build settings
-theme: minima
+#theme: minima
 #layout: single
 #classes: wide
 plugins:
