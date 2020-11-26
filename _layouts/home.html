@@ -34,7 +34,7 @@ layout: default
         </p>
         {%- if post.show_excerpts != false -%}
           <div class="post-excerpt">{{ post.excerpt | strip_html }}</div>
-          {%- if post.image != false -%}
+	   {% if post.image %}
   	    <img src="{{ site.baseurl }}/assets/images/{{ post.image }}">
           {%- endif -%}
         {%- endif -%}
