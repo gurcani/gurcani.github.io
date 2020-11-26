@@ -45,8 +45,13 @@ skin: daylight
 plugins:
   - jekyll-seo-tag
   - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-paginate
+
 remote_theme: ngzhio/jekyll-theme-hamilton
 
+paginate: 10
 
 #  - jekyll-feed
 
@@ -69,3 +74,9 @@ remote_theme: ngzhio/jekyll-theme-hamilton
 #   - vendor/cache/
 #   - vendor/gems/
 #   - vendor/ruby/
+
+
+twitter:
+  username: objektin
+  card: summary
+logo: logo.png
