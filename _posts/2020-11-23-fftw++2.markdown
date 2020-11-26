@@ -5,7 +5,14 @@ date : 2020-11-23
 mathjax: true
 comments: true
 categories : python ctypes coding
+excerpt_separator: <!--more-->
 ---
+
+FFTW++ is useful for turbulence simulations. In order to use it in more than one dimensions, we need to understand how it handles convolutions.
+Here we will try to discover how it computes convolutions, in particular centered Hermitian symmetric convolutions in two dimensions by writing
+equivalent code which basically computes the same convolutions from the same input and output as in the example files of fftw++.
+
+<!--more-->
 
 ## 2D Convolutions
 

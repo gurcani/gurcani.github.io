@@ -5,14 +5,15 @@ date : 2020-11-21
 mathjax: true
 comments: true
 categories : python ctypes coding
+excerpt_separator: <!--more-->
 ---
-
-## Motivation
 
 [FFTW++](https://github.com/dealias/fftwpp) is an implicit dealiasing library for turbulence simulations. It provides a C++ interface to [FFTW](http://www.fftw.org/) and a number of
 convolution classes and routines. It uses multithreading as well as MPI based parallelization. However, unfortunately it is poorly documented. So in this post
 I will report my attempts at trying to understand how it actually works, what it actually computes and what are the different options we have etc. Obviously I don't
 claim to have any kind of mastery of its use and therefore the information I provide can be erroneous. If you find that this is the case, let me know and I will try to correct.
+
+<!--more-->
 
 ## Basic Use
 
