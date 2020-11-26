@@ -1,26 +1,32 @@
 <!DOCTYPE html>
 <html lang="{{ page.lang | default: site.lang | default: "en" }}">
 
-  {%- include head.html -%}
+  <head>
+    {% include head.html %}
+  </head>
 
   <body>
-
-    {%- include header.html -%}
-
-    <main class="page-content" aria-label="Content">
-      <div class="wrapper">
-        {{ content }}
-      </div>
-    </main>
-
-    <div class="page-content">
-      <div class="wrapper">
-        {% include github-comments.html %}
+    <div class="site-container">
+      <header class="site-header">
+        {% include header.html %}
+      </header>
+      
+      <div class="site-body wrapper">
+        <aside class="site-sidebar" id="site-sidebar">
+          {% if page.toc %}
+            {% include sidebar-toc.html %}
+          {% else %}
+            {% include sidebar.html %}
+          {% endif %}
+        </aside>
+        <main class="site-main" id="site-main" aria-label="Content">
+          {{ content }}
+          <footer class="site-footer">
+            {% include footer.html %}
+          </footer>
+        </main>
       </div>
     </div>
-
-    {%- include footer.html -%}
-
   </body>
 
 </html>
