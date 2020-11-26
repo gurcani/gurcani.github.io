@@ -43,8 +43,8 @@ skin: daylight
 #layout: single
 #classes: wide
 plugins:
+  - jekyll-seo-tag
   - jekyll-remote-theme
-
 remote_theme: ngzhio/jekyll-theme-hamilton
 
 
