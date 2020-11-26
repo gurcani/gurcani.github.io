@@ -6,7 +6,6 @@ mathjax: true
 comments: true
 categories : python ctypes coding
 excerpt_separator: <!--more-->
-toc : true
 ---
 
 FFTW++ is useful for turbulence simulations. In order to use it in more than one dimensions, we need to understand how it handles convolutions.
