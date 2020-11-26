@@ -51,8 +51,6 @@ plugins:
 
 remote_theme: ngzhio/jekyll-theme-hamilton
 
-paginate: 10
-
 #  - jekyll-feed
 
 # Exclude from processing.
