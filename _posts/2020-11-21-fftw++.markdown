@@ -6,6 +6,7 @@ mathjax: true
 comments: true
 categories : python ctypes coding
 excerpt_separator: <!--more-->
+toc : true
 ---
 
 [FFTW++](https://github.com/dealias/fftwpp) is an implicit dealiasing library for turbulence simulations. It provides a C++ interface to [FFTW](http://www.fftw.org/) and a number of
