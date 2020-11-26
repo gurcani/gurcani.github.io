@@ -39,7 +39,12 @@ theme: minima
 #layout: single
 #classes: wide
 plugins:
-  - jekyll-feed
+  - jekyll-remote-theme
+
+remote_theme: ngzhio/jekyll-theme-hamilton
+
+
+#  - jekyll-feed
 
 # Exclude from processing.
 # The following items will not be processed, by default.
