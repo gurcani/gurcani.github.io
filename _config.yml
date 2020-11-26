@@ -38,7 +38,7 @@ github_username:  gurcani
 
 # Build settings
 
-skin: daylight
+skin: sunrise
 
 #theme: minima
 #layout: single
@@ -75,7 +75,7 @@ remote_theme: ngzhio/jekyll-theme-hamilton
 #   - vendor/ruby/
 
 
-twitter:
-  username: objektin
-  card: summary
-logo: logo.png
+#twitter:
+#  username: objektin
+#  card: summary
+#logo: logo.png
