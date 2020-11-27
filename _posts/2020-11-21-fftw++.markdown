@@ -4,7 +4,8 @@ title : Trying to Figure Out How to Use FFTW++ (1D)
 date : 2020-11-21
 mathjax: true
 comments: true
-categories : python ctypes coding
+categories : python fftw++ coding
+tags : python fftw++ coding
 excerpt_separator: <!--more-->
 image: fftwpp_extended.svg
 ---

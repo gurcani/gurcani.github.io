@@ -2,7 +2,8 @@
 layout : post
 title : Using Ctypes to Call a C Function That Calls Back a Python Function.
 date : 2020-11-20
-categories : python ctypes coding
+categories : python coding
+tags : python ctypes coding
 excerpt_separator: <!--more-->
 ---
 
