@@ -218,3 +218,28 @@ Now interestingly enough, fftw++ seems to use a different array splitting scheme
 
 [![mpi_split](/assets/images/mpi_split.svg)](/assets/images/mpi_split.svg)
 
+the two different algorithms can be written explictly as:
+
+[**splitmpi.py**](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/fftw%2B%2B/splitmpi.py)
+```py
+def splitmpi(N,rank,size):
+    nperpe = int(N/size)
+    nrem = N - size*nperpe
+    local_N = nperpe+(rank < nrem)
+    loc_base = rank*nperpe+min(rank,nrem)
+    return local_N,loc_base
+
+
+def ceilquotient(a,b):
+    return int((a+b-1)/b)
+
+def localdimension(N, rank, size):
+    n=ceilquotient(N,size)
+    start=n*rank
+    extra=N-start
+    if(extra < 0):
+        extra=0
+    if(n > extra):
+        n=extra
+    return n,start
+```
