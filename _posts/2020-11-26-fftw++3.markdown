@@ -22,7 +22,7 @@ just the functionality that we need.
 
 In order to do that we first [fork](https://github.com/gurcani/fftwpp) fftw++. Create a directory called libfftwpp in the main directory tree and add the following file there:
 
-[**CMakeList.txt**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/CMakeList.txt)
+[**CMakeLists.txt**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/CMakeLists.txt)
 ```
 cmake_minimum_required(VERSION 3.10)
 project(fftwpp VERSION 0.1 LANGUAGES C CXX)
