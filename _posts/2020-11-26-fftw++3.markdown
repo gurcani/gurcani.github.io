@@ -6,8 +6,8 @@ mathjax: true
 comments: true
 categories : python fftw++ coding turbulence
 tags : python fftw++ coding turbulence
-excerpt_separator: <!--more-->
-image:mpi_split.svg
+excerpt_separator : <!--more-->
+image : mpi_split.svg
 ---
 
 As discussed in my earlier posts [FFTW++](https://github.com/dealias/fftwpp) is an implicit dealiasing library for turbulence simulations. 
