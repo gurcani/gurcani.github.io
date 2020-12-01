@@ -14,6 +14,8 @@ In the notation used by fftw, the two parameters **mx** and **my** determine rou
 
 However exactly how many elements the arrays that we use will have depends on the parameters **xcompact** and **ycompact**. In practice if xcompact, ycompact are true the array size for HConvolution2 will be **2*mx-1** and **my** whereas if xcompact and ycompact are false, the array sizes will be 2*mx and my+1.
 
+<!--more-->
+
 ## Details of compact vs. non-compact arrays
 
 Another issue is the size of the temporary array **u** that the **ImplicitHConvolution2MPI** uses. It is actually
