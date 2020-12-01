@@ -9,9 +9,9 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   height="504.40192pt"
+   height="550pt"
    version="1.1"
-   viewBox="0 0 591.68396 504.40192"
+   viewBox="0 0 591.68396 550"
    width="591.68396pt"
    id="svg1445"
    sodipodi:docname="fftwpp_xycomp.svg"
@@ -29,9 +29,9 @@
      inkscape:window-height="1027"
      id="namedview1447"
      showgrid="false"
-     inkscape:zoom="1.7291667"
+     inkscape:zoom="0.86458335"
      inkscape:cx="447.03206"
-     inkscape:cy="200.81896"
+     inkscape:cy="398.66053"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -124,7 +124,7 @@
   </defs>
   <g
      id="figure_1"
-     transform="translate(31.46398,61.162776)">
+     transform="translate(31.46398,94.162776)">
     <g
        id="patch_1" />
     <g
@@ -2201,7 +2201,7 @@
      width="473.76001"
      height="270.72"
      x="116.42398"
-     y="139.64276" />
+     y="172.64276" />
   <g
      ns8:version="1.1.0"
      ns8:texconverter="pdflatex"
@@ -2210,7 +2210,7 @@
      ns8:preamble="/home/ogurcan/talks/berlin19/default_packages.tex"
      ns8:scale="2.0"
      ns8:alignment="middle center"
-     transform="matrix(2.7036212,0,0,2.7036212,325.91608,25.880446)"
+     transform="matrix(2.7036212,0,0,2.7036212,325.91608,58.880446)"
      ns8:jacobian_sqrt="2.0"
      id="g1833"
      style="fill:#0000ff">
@@ -2380,12 +2380,12 @@
   </g>
   <path
      style="fill:none;stroke:#0000ff;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow1Mend)"
-     d="m 369.47872,140.71302 0.0778,-89.843923"
+     d="m 369.47872,173.71302 0.0778,-89.843923"
      id="path1876"
      sodipodi:nodetypes="cc" />
   <path
      style="fill:none;stroke:#0000ff;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker2176)"
-     d="m 170.69827,438.07781 -23.37264,-48.7944"
+     d="m 170.69827,471.07781 -23.37264,-48.7944"
      id="path2172"
      sodipodi:nodetypes="cc" />
   <g
@@ -2396,7 +2396,7 @@
      ns8:preamble="/home/ogurcan/talks/berlin19/default_packages.tex"
      ns8:scale="1.8405295169174811"
      ns8:alignment="middle center"
-     transform="matrix(1.84053,0,0,1.84053,152.05746,442.853)"
+     transform="matrix(1.84053,0,0,1.84053,152.05746,475.853)"
      ns8:jacobian_sqrt="1.84053"
      style="fill:#0000ff;stroke-width:0"
      id="g5010">
@@ -2755,7 +2755,7 @@
      ns8:preamble="/home/ogurcan/talks/berlin19/default_packages.tex"
      ns8:scale="1.8405295169174811"
      ns8:alignment="middle center"
-     transform="matrix(1.84053,0,0,1.84053,9.20265e-4,440.44876)"
+     transform="matrix(1.84053,0,0,1.84053,9.20265e-4,473.44876)"
      ns8:jacobian_sqrt="1.84053"
      style="fill:#000000;stroke-width:0"
      id="g5823">
@@ -3162,12 +3162,12 @@
   </g>
   <path
      style="fill:#000000;stroke:#000000;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker5927)"
-     d="m 33.850964,431.55028 42.429329,-41.5935"
+     d="m 33.850964,464.55028 42.429329,-41.5935"
      id="path5923"
      sodipodi:nodetypes="cc" />
   <path
      style="fill:none;stroke:#000000;stroke-width:2.83465;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker6902)"
-     d="m 223.82675,72.410396 0.0778,-46.377406"
+     d="m 223.82675,105.4104 0.0778,-46.37741"
      id="path6898"
      sodipodi:nodetypes="cc" />
   <g
@@ -3179,7 +3179,7 @@
      ns8:scale="2.7036212"
      ns8:alignment="middle center"
      ns8:inkscapeversion="1.0.1"
-     transform="matrix(2.70362,0,0,2.70362,158.572,6.75905e-4)"
+     transform="matrix(2.70362,0,0,2.70362,158.572,33.000676)"
      ns8:jacobian_sqrt="2.70362"
      style="fill:#000000;stroke-width:0"
      id="g7696">

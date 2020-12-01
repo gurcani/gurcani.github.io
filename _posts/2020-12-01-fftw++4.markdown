@@ -39,8 +39,6 @@ It is true that I consider **xcompact** and **ycompact** together and talk about
 
 As a concrete example, consider the array **g** that we used in [our earlier post]({% post_url 2020-11-23-fftw++2 %}). The structure of the array that is eqivalent can be seen in the figure below.
 
-\_
-
 [![fftwpp_xycomp](/assets/images/fftwpp_xycomp.svg)](/assets/images/fftwpp_xycomp.svg)
 
 Note that the mpi example given in fftw++ ([fft2rconv.cc](https://github.com/dealias/fftwpp/blob/master/mpi/examples/fft2rconv.cc)) uses non-compact arrays, while the basic example of the 2D Hermitian symmetric convolution ([exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc)) uses compact arrays.
