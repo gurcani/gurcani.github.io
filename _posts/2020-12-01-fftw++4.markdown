@@ -1,0 +1,119 @@
+---
+layout : post
+title : Using MPI with fftw++ (xcompact,ycompact)
+date : 2020-12-01
+mathjax: true
+comments: true
+categories : python fftw++ coding turbulence
+tags : python fftw++ coding turbulence
+excerpt_separator : <!--more-->
+image : fftwpp_xycomp.svg
+---
+
+In the notation used by fftw, the two parameters **mx** and **my** determine roughly the independent degrees of freedom, minus the hermitian symmetry of the **y=0** axis as discussed in [an earlier blog post]({% post_url 2020-11-23-fftw++2 %}).
+
+However exactly how many elements the arrays that we use will have depends on the parameters **xcompact** and **ycompact**. In practice if xcompact, ycompact are true the array size for HConvolution2 will be **2*mx-1** and **my** whereas if xcompact and ycompact are false, the array sizes will be 2*mx and my+1.
+
+## Details of compact vs. non-compact arrays
+
+Another issue is the size of the temporary array **u** that the **ImplicitHConvolution2MPI** uses. It is actually
+implicitly defined through the split structures that we define and pass to **ImplicitHConvolution2MPI**. If **xcompact** and **ycompact** are true, we need to use:
+
+```c
+split dg(2*mx-1,my,group.active);
+split du(mx+1,my,group.active);
+```
+
+for the two split parameters **dg** and **du** that goes into the initialization of **ImplicitHConvolution2MPI**. This is in contrast to:
+
+```c
+split dg(2*mx,my+1,group.active);
+split du(mx,my+1,group.active);
+```
+
+for the noncompact case. 
+
+It is true that I consider **xcompact** and **ycompact** together and talk about the compact case when both are true and the noncompact case when both are false in order to have a better understanding. In fftw++ it is actually more flexible and the array sizes are defined as **nx=2*mx-xcompact**, **nyp=my+!ycompact** for **g** and **mx+xcompact**, **nyp** for **u**.
+
+As a concrete example, consider the array **g** that we used in [our earlier post]({% post_url 2020-11-23-fftw++2 %}). The structure of the array that is eqivalent can be seen in the figure below.
+[![fftwpp_xycomp](/assets/images/fftwpp_xycomp.svg)](/assets/images/fftwpp_xycomp.svg)
+
+Note that the mpi example given in fftw++ ([fft2rconv.cc](https://github.com/dealias/fftwpp/blob/master/mpi/examples/fft2rconv.cc)) uses non-compact arrays, while the basic example of the 2D Hermitian symmetric convolution ([exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc)) uses compact arrays.
+
+We have added an example which uses the same compact arrays of the basic example using **ImplicitHConvolution2MPI** as in the mpi example in our fork of the fftw++ (see [exampleconv2_mpi.cc](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/exampleconv2_mpi.cc) ).
+
+It can be compiled by hand like this:
+```sh
+mpic++ exampleconv2_mpi.cc -pthread -I../ -I../mpi/ -I../tests/ -L./ -lfftwpp -lfftw3_omp -lfftw3 -lm
+```
+
+In fact probably the best way to see how this works is using the python version of the same example. Which can be written using the same wrapper that we used [earlier]({% post_url 2020-11-26-fftw++3 %}), as:
+
+[**test2.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test2.py)
+```py
+comm=MPI.COMM_WORLD
+commp=MPI._addressof(comm)
+
+xcomp,ycomp=True,True
+
+mx,my=4,4
+nx=2*mx-int(xcomp)
+ny=2*my-int(ycomp)
+nyp=int(ny/2+1)
+
+grpptr=clib.fftwpp_mpi_group(nyp,commp)
+grp=group.from_address(grpptr)
+
+print("grp.size=",grp.size,"grp.rank=",grp.rank)
+
+if (grp.rank<grp.size):
+    dgptr=clib.fftwpp_mpi_split(nx,nyp,grpptr)
+    duptr=clib.fftwpp_mpi_split(mx+int(xcomp),nyp,grpptr)
+    du=split.from_address(duptr)
+    dg=split.from_address(dgptr)
+    
+    fc=np.ctypeslib.as_array(clib.fftwpp_complexalign(2*dg.n),shape=(2*dg.n,)).view(dtype=complex)
+    f=np.ctypeslib.as_array(clib.fftwpp_complexalign(2*dg.X*dg.y),shape=(2*dg.X*dg.y,)).view(dtype=complex).reshape((dg.X,dg.y))
+    g=np.ctypeslib.as_array(clib.fftwpp_complexalign(2*dg.X*dg.y),shape=(2*dg.X*dg.y,)).view(dtype=complex).reshape((dg.X,dg.y))
+
+    cptr=clib.fftwpp_create_hconv2d_mpi(dgptr,duptr,xcomp,ycomp,f)
+    f.fill(0)
+    g.fill(0)
+    f[int(not xcomp):,:]=np.array([[l+1j*(m+dg.y0) for m in range(dg.y)] for l in range(dg.X-int(not xcomp)) ])
+    g[int(not xcomp):,:]=np.array([[2*l+1j*(m+dg.y0+1) for m in range(dg.y)] for l in range(dg.X-int(not xcomp))])
+    if (dg.y0+dg.y==dg.Y and not ycomp):
+        f[:,-1]=0
+        g[:,-1]=0
+    print("f=",f)
+    print("g=",g)
+    clib.fftwpp_hconv2d_mpi_convolve(cptr,f,g)
+    h=f
+    print("h=",h)
+```
+
+It gives:
+
+```
+h= [[ 696.+240.j  483.+306.j  302.+300.j  125.+240.j]
+ [ 988.+205.j  722.+309.j  464.+345.j  211.+321.j]
+ [1328.+125.j  993.+289.j  658.+388.j  329.+424.j]
+ [1698.  +0.j 1292.+246.j  886.+429.j  487.+549.j]
+ [1328.-125.j 1063.+127.j  798.+334.j  539.+496.j]
+ [ 988.-205.j  846. +41.j  704.+257.j  567.+443.j]
+ [ 696.-240.j  653. -12.j  610.+198.j  571.+390.j]]
+```
+
+as before with **xcomp,ycomp=True,True**, or
+
+```
+h= [[   0.  +0.j    0.  +0.j    0.  +0.j    0.  +0.j    0.  +0.j]
+ [ 696.+240.j  483.+306.j  302.+300.j  125.+240.j    0.  +0.j]
+ [ 988.+205.j  722.+309.j  464.+345.j  211.+321.j    0.  +0.j]
+ [1328.+125.j  993.+289.j  658.+388.j  329.+424.j    0.  +0.j]
+ [1698.  +0.j 1292.+246.j  886.+429.j  487.+549.j    0.  +0.j]
+ [1328.-125.j 1063.+127.j  798.+334.j  539.+496.j    0.  +0.j]
+ [ 988.-205.j  846. +41.j  704.+257.j  567.+443.j    0.  +0.j]
+ [ 696.-240.j  653. -12.j  610.+198.j  571.+390.j    0.  +0.j]]
+```
+
+with **xcomp,ycomp=False,False**
