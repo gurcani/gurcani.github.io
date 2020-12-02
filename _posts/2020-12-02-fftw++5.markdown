@@ -100,7 +100,10 @@ Navier-Stokes equation as follows:
 
 $$
 \begin{equation}\label{eq:phi}\tag{1}
-\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi = \partial_{y}\partial_{x}\left[\left(\partial_{x}\Phi\right)^{2}-\left(\partial_{y}\Phi\right)^{2}\right]+\left(\partial_{y}\partial_{y}-\partial_{x}\partial_{x}\right)\left(\partial_{y}\Phi\partial_{x}\Phi\right)
+\begin{split}
+\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi	= & \partial_{y}\partial_{x}\left[\left(\partial_{x}\Phi\right)^{2}-\left(\partial_{y}\Phi\right)^{2}\right] \\
+	& +\left(\partial_{y}\partial_{y}-\partial_{x}\partial_{x}\right)\left(\partial_{y}\Phi\partial_{x}\Phi\right)
+\end{split}
 \end{equation}
 $$
 
@@ -108,8 +111,10 @@ which allow us to compute the full convolution using
 
 $$
 \begin{equation}\label{eq:defs}\tag{2}
-u\equiv\partial_{x}\Phi\\
-v\equiv\partial_{y}\Phi
+\begin{split}
+u & \equiv\partial_{x}\Phi \\
+v & \equiv\partial_{y}\Phi
+\end{split}
 \end{equation}
 $$
 
