@@ -1,0 +1,81 @@
+---
+layout : post
+title : How to pass multiple arrays using a pointer of pointers from python to C.
+date : 2020-12-03 00:03:00 CET
+math: true
+comments: true
+categories : python ctypes coding
+tags : python ctypes coding
+excerpt_separator : <!--more-->
+---
+
+Nominally, "2D arrays" on C, whose elements we can access using the notation F[i][j] are in fact not really arrays, but pointers of pointers. In other words each F[i] is a pointer to a basic type so that (F[i])[j] gives the actual basic element.
+
+To be fair, this is rarely used to describe 2D arrays, even in C. But it can sometimes be used to describe a "collection of arrays". Under python, on the other hand, a collection of arrays would be naturally described by a list of (say) numpy arrays. So it would be interesting to pass a list of numpy arrays to a c function that uses pointers of pointers.
+
+<!--more-->
+
+## Using Ctypes to Pass a List of Numpy Arrays as a Pointer of Pointers from Python to C:
+
+Consider the C function defined as:
+
+```c
+#include <complex.h>
+
+void testabssum(complex **F, double *res, int n, int N){
+  int j,l;
+  for (j=0;j<n;j++){
+    res[j]=0;
+    for (l=0;l<N;l++){
+      res[j]+=cabs(F[l][j]);
+    }
+  }
+}
+```
+
+which basically takes a collection of complex arrays and sums these absolute values of these arrays element by element
+and returns the result in the (pre-allocated) output array "res". The size of the arrays are defined by **n**, while 
+the size of the collection if defined by **N**.
+
+Imagine we have a list of arrays in python, defined as follows:
+
+```py
+import numpy as np
+
+n=20
+
+f=np.array([l+1j*(l+1) for l in range(n)])
+g=np.array([l+1j*(2*l+1) for l in range(n)])
+h=np.array([l+1j*(3*l+1) for l in range(n)])
+r=np.array([l+1j*(4*l+1) for l in range(n)])
+res=np.zeros(r.shape)
+
+F=(f,g,h,r)
+
+```
+In order to pass this list to the C function we need to transform it to a ctypes type that describes a pointer of pointers. Normally it is a pointer of pointers to complex numbers, but in fact we can use **POINTER(POINTER(c_double))** without any problem for this.
+
+```py
+from ctypes import cdll,c_uint,c_double,POINTER
+from numpy.ctypeslib import ndpointer
+
+libcpy = cdll.LoadLibrary('./libcpytest.so')
+libcpy.testabssum.argtypes=[POINTER(POINTER(c_double)),ndpointer(dtype=float),c_uint,c_uint]
+
+Fp=(POINTER(c_double)*len(F))(*[l.ctypes.data_as(POINTER(c_double)) for l in F])
+
+libcpy.testabssum(Fp,res,n,len(F))
+print("res=",res)
+```
+
+gives:
+
+```
+res= [  4.          14.62047078  25.49037043  36.39774368  47.31770174
+  58.24338341  69.17214463  80.10275171  91.034552   101.96716796
+ 112.90036609 123.83399422 134.76794896 145.70215759 156.63656749
+ 167.57113963 178.50584446 189.44065921 200.37556601 211.31055069]
+```
+
+which can be verified by computing the same thing in python by **np.sum(np.abs(np.array(F)),axis=0)**
+
