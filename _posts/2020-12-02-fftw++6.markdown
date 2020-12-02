@@ -1,0 +1,191 @@
+---
+layout : post
+title : Adding a Multiplier Function to FFTW++
+date : 2020-12-02 19:05:21 CET
+math: true
+comments: true
+categories : python fftw++ coding turbulence
+tags : python fftw++ coding turbulence
+excerpt_separator : <!--more-->
+---
+
+Say we want to implement a pseudo-spectral solver for 2D Navier-Stokes + passive scalar problem. The problem have
+two nonlinearities that we need to compute using convolutions. We need to figure out how to do that in a compact
+way using multiplier functions. We also need to understand the form of the wave-number array so that we can use them to compute derivatives.
+
+<!--more-->
+## The Passive Scalar Problem
+
+The equations are:
+
+$$
+\begin{equation}\label{eq:phi}\tag{1}
+\begin{split}
+\frac{\partial}{\partial t}\nabla^{2}\Phi & + \hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi=\nu\nabla^{4}\Phi\\
+\frac{\partial}{\partial t}n & +\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla n=D\nabla^{2}n
+\end{split}
+\end{equation}
+$$
+
+This means that we need to compute the two nonlinearities, for example as:
+
+$$
+\begin{equation}\label{eq:nl}\tag{2}
+\begin{split}
+\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi\right]_{k} & =-k_{x}k_{y}\left(u^{2}-v^{2}\right)+\left(k_{x}^{2}-k_{y}^{2}\right)uv \\
+\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla n\right]_{k} & =ik_{y}nu-ik_{x}nv
+\end{split}
+\end{equation}
+$$
+
+using centered hermitian symmetric convolutions, which means implies wave-vectors of the form:
+
+```py
+kx=np.arange(-mx+int(xcomp),mx)*dkx
+ky=np.arange(0,nyp)*dky
+```
+
+where **xcomp** is the boolean variable which specifies whether the underlying arrays are  compact or not in the **x** direction and dkx and dky are the fourier space grid element sizes. Usually one defines the system size using the variables **Lx** and **Ly**, which implies 
+
+```py
+dkx=2*np.pi/Lx
+dky=2*np.pi/Ly
+```
+
+Now in order to compute the two nonlinear terms of \eqref{eq:nl} using fftw++, we need to use three inputs and four outputs (or vice versa with a slightly different formulation) resulting in 7 fourier transforms per stage (as opposed to 8 which would be required for 6 inputs and 2 outputs one would need with the explicit forms). Disadvantage is that we then need to form the nonlinear terms by multiplications with **k**'s and summations. In contrast the explicit formulation gives the nonlinear terms directly. Therefore we will implement both, in order to compare the two.
+
+### 3 input 4 output Advection (multadvection34):
+
+In order to compute the two nonlinear terms in \label{eq:nl}, we use a multiplier function that will compute
+
+**multadvection34**
+```
+F[0][j]=F[0][j]\*F[0][j]-F[1][j]\*F[1][j]
+F[1][j]=F[0][j]\*F[1][j]
+F[2][j]=F[0][j]\*F[2][j]
+F[3][j]=F[1][j]\*F[2][j]
+```
+
+with the input variables **F[:][j]=u,v,n**. This can be implemented in C++ starting from **multadvection2** in [convolution.cc](https://github.com/dealias/fftwpp/blob/master/convolution.cc) and modifying by adding the necessary terms as follows. Here I show only the non sse2 part of the routine, the full function can be found in [cfftwpp.cc](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc).
+
+[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc)
+```c
+  void multadvection34(double **F, unsigned int m,
+		      const unsigned int indexsize,
+		      const unsigned int *index,
+		      unsigned int r, unsigned int threads)
+  {
+    double* F0=F[0];
+    double* F1=F[1];
+    double* F2=F[2];
+    double* F3=F[3];
+#ifdef __SSE2__
+/*...*/
+#else
+    for(unsigned int j=0; j < m; ++j) {
+      double u=F0[j];
+      double v=F1[j];
+      double n=F2[j];
+      F0[j]=v*v-u*u;
+      F1[j]=u*v;
+      F2[j]=n*u;
+      F3[j]=n*v;
+    }
+#endif
+  }
+
+```
+
+We need to add the decalaration and the necessary functions to initialize and compute the convolution 
+to the header file:
+
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+```c
+  realmultiplier multadvection34;
+/*...*/
+
+  ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpi_adv34(split &dg,split &du,
+							   bool xcomp, bool ycomp, double __complex__ *g){
+    unsigned int nx=dg.X,ny=(dg.Y-1)*2+xcomp;
+    unsigned int nyp=ny/2+1;
+    unsigned int mx=(nx+1)/2;
+    unsigned int my=(ny+1)/2;
+    return new ImplicitHConvolution2MPI(mx,my,xcomp,ycomp,dg,du,(Complex *)g,dfoptions,3,4);
+  }
+
+  void fftwpp_hconv2d_mpi_convolve_adv34(ImplicitHConvolution2MPI* hconv, double __complex__ *f, double __complex__ *g, double __complex__ *h, double __complex__ *r) {
+    Complex *G[]={(Complex *)f,(Complex *)g, (Complex *)h, (Complex *)r};
+    hconv->convolve(G,multadvection34);
+  }
+
+```
+
+and finally the necessary wrappers to the python file:
+
+[**test4.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test4.py)
+```py
+clib.fftwpp_create_hconv2d_mpi_adv34.restype = c_void_p
+clib.fftwpp_create_hconv2d_mpi_adv34.argtypes =[c_void_p,c_void_p,
+                                                c_bool, c_bool,
+                                                ndpointer(dtype = np.complex128)]
+
+clib.fftwpp_hconv2d_mpi_convolve_adv34.argtypes = [ c_void_p,
+                                          ndpointer(dtype = np.complex128),
+                                          ndpointer(dtype = np.complex128),
+                                          ndpointer(dtype = np.complex128),
+                                          ndpointer(dtype = np.complex128) ]
+```
+
+with all these we can call the wrapped python functions written (in a simpler form than what appears in the actual file) as follows:
+
+[**test4.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test4.py)
+```py
+    cptr=clib.fftwpp_create_hconv2d_mpi_adv34(dgptr,duptr,xcomp,ycomp,f)
+
+    f[int(not xcomp):,:]=np.array([[l+1j*(m+dg.y0) for m in range(dg.y)] for l in range(dg.X-int(not xcomp)) ])
+    g[int(not xcomp):,:]=np.array([[2*l+1j*(m+dg.y0+1) for m in range(dg.y)] for l in range(dg.X-int(not xcomp))])
+    h[int(not xcomp):,:]=np.array([[3*l+1j*(m+dg.y0+2) for m in range(dg.y)] for l in range(dg.X-int(not xcomp))])
+
+    print("f=",f)
+    print("g=",g)
+    print("h=",h)
+    clib.fftwpp_hconv2d_mpi_convolve_adv34(cptr,f,g,h,r)
+    print("f=",f)
+    print('g=',g)
+    print('h=',h)
+    print('r=',r)
+```
+
+which prints out the following:
+```
+f= [[ 922.+240.j  668.+324.j  442.+300.j  208.+240.j]
+ [1333.+220.j 1008.+316.j  677.+340.j  336.+324.j]
+ [1816.+140.j 1396.+286.j  960.+382.j  512.+436.j]
+ [2343.  +0.j 1826.+234.j 1294.+426.j  748.+576.j]
+ [1816.-140.j 1496.+118.j 1164.+346.j  820.+544.j]
+ [1333.-220.j 1184. +44.j 1025.+288.j  856.+512.j]
+ [ 922.-240.j  908. +12.j  886.+252.j  856.+480.j]]
+g= [[ 696.+240.j  483.+306.j  302.+300.j  125.+240.j]
+ [ 988.+205.j  722.+309.j  464.+345.j  211.+321.j]
+ [1328.+125.j  993.+289.j  658.+388.j  329.+424.j]
+ [1698.  +0.j 1292.+246.j  886.+429.j  487.+549.j]
+ [1328.-125.j 1063.+127.j  798.+334.j  539.+496.j]
+ [ 988.-205.j  846. +41.j  704.+257.j  567.+443.j]
+ [ 696.-240.j  653. -12.j  610.+198.j  571.+390.j]]
+h= [[1012.+336.j  710.+432.j  452.+420.j  194.+336.j]
+ [1442.+290.j 1064.+434.j  693.+482.j  322.+450.j]
+ [1944.+178.j 1466.+404.j  982.+542.j  498.+596.j]
+ [2491.  +0.j 1910.+342.j 1322.+600.j  734.+774.j]
+ [1944.-178.j 1570.+176.j 1190.+470.j  810.+704.j]
+ [1442.-290.j 1248. +58.j 1049.+366.j  850.+634.j]
+ [1012.-336.j  962. -12.j  908.+288.j  854.+564.j]]
+r= [[1908. +528.j 1365. +702.j  886. +660.j  403. +528.j]
+ [2746. +475.j 2054. +691.j 1360. +751.j  661. +711.j]
+ [3728. +299.j 2839. +631.j 1930. +844.j 1015. +952.j]
+ [4798.   +0.j 3708. +522.j 2602. +939.j 1489.+1251.j]
+ [3728. -299.j 3041. +265.j 2342. +754.j 1637.+1168.j]
+ [2746. -475.j 2410.  +95.j 2064. +615.j 1713.+1085.j]
+ [1908. -528.j 1851.  +12.j 1786. +522.j 1717.+1002.j]]
+```
+
+We can verify the last two by computing usual binary convolutions, which I find unneccessary to show here. It seems these are indeed correct.
