@@ -1,0 +1,104 @@
+---
+layout : post
+title : Considerations on Multiple Convolutions in Pseudo-spectral Formulation
+date : 2020-12-02
+mathjax: true
+comments: true
+categories : python fftw++ coding turbulence
+tags : python fftw++ coding turbulence
+excerpt_separator : <!--more-->
+---
+
+[FFTW++](https://github.com/dealias/fftwpp) can be used to compute multiple convolutions that are added together. Looking at the code and in particular
+[convolution.cc](https://github.com/dealias/fftwpp/blob/master/convolution.cc), we find that this can be achieved by using what seems to be called **multiplier functions** (or classes).
+
+We have already used one of these earlier, which is the basic **multbinary** function, which computes **F[0][j] *= F[1][j]** with two arrays.
+
+<!--more-->
+
+-**multautocorrelation** : F[0][j] \*= conj(F[0][j])
+
+-**multautoconvolution** : F[0][j] \*= F[0][j]
+
+-**multcorrelation** : F[0][j] \*= conj(F[1][j])
+
+-**multbinary** : F[0][j] \*= F[1][j]
+
+-**multbinary2** : F[0][j]=F[0][j]\*F[2][j]+F[1][j]\*F[3][j]
+
+-**multbinary3** : F[0][j]=F[0][j]\*F[3][j]+F[1][j]\*F[4][j]+F[2][j]\*F[5][j]
+
+-**multbinary4** : F[0][j]=F[0][j]\*F[4][j]+F[1][j]\*F[5][j]+F[2][j]\*F[6][j]+F[3][j]\*F[7][j]
+
+-**multbinary8** : the same idea.
+
+-**multadvection2** : F[0][j]=F[0][j]\*F[0][j]-F[1][j]\*F[1][j] and F1[j]=F[0][j]\*F[1][j] [^1]
+
+[^1]: See [Basdevant, *J. Comp. Phys*, **50**, pp. 209-214 (1983)](https://doi.org/10.1016/0021-9991(83)90064-5)
+
+Note that **multbinary** and **multbinary2** has both real and complex forms, which means they can deal with real or complex arrays, while multiadvection2 has only real form. Typically when we us hermitian symmetric convolutions
+what we convolve ar real arrays.
+
+## Using a Multiplier
+
+Here we want to use one of the multiplier functions above from python. Let's say we want to use **multadvection2**. We first need to add the following to our c wrapper file:
+
+**cfftwpp.h**
+```c
+ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpi_adv2(split &dg,split &du,
+						      bool xcomp, bool ycomp, double __complex__ *g){
+  unsigned int nx=dg.X,ny=(dg.Y-1)*2+xcomp;
+  unsigned int nyp=ny/2+1;
+  unsigned int mx=(nx+1)/2;
+  unsigned int my=(ny+1)/2;
+  return new ImplicitHConvolution2MPI(mx,my,xcomp,ycomp,dg,du,(Complex *)g,dfoptions,2,2);
+}
+  
+void fftwpp_hconv2d_mpi_convolve_adv2(ImplicitHConvolution2MPI* hconv, double __complex__ *f, double __complex__ *g) {
+  Complex *G[]={(Complex *)f,(Complex *)g};
+  hconv->convolve(G,multadvection2);
+}
+```
+Note that the two integers **2,2** at the end of the line with **ImplicitHConvolution2MPI** correspond to **A=2**, **B=2** in the initialization, which define the number of input and output arguments.
+By default the convolution computes a single output, whereas here we compute two outputs for two inputs.
+
+We can call wrap these functions into python as before:
+
+```py
+clib.fftwpp_create_hconv2d_mpi_adv2.restype = c_void_p
+clib.fftwpp_create_hconv2d_mpi_adv2.argtypes =[c_void_p,c_void_p,c_bool, c_bool,ndpointer(dtype = np.complex128)]
+
+clib.fftwpp_hconv2d_mpi_convolve_adv2.argtypes = [ c_void_p,
+                                          ndpointer(dtype = np.complex128),
+                                          ndpointer(dtype = np.complex128) ]
+```
+
+and finally call them from python as:
+
+```py
+...
+cptr=clib.fftwpp_create_hconv2d_mpi_adv2(dgptr,duptr,xcomp,ycomp,f)
+...
+clib.fftwpp_hconv2d_mpi_convolve_adv2(cptr,f,g)
+print("f=",f)
+print('g=',g)
+```
+this spits out:
+```
+f= [[ 922.+240.j  668.+324.j  442.+300.j  208.+240.j]
+ [1333.+220.j 1008.+316.j  677.+340.j  336.+324.j]
+ [1816.+140.j 1396.+286.j  960.+382.j  512.+436.j]
+ [2343.  +0.j 1826.+234.j 1294.+426.j  748.+576.j]
+ [1816.-140.j 1496.+118.j 1164.+346.j  820.+544.j]
+ [1333.-220.j 1184. +44.j 1025.+288.j  856.+512.j]
+ [ 922.-240.j  908. +12.j  886.+252.j  856.+480.j]]
+g= [[ 696.+240.j  483.+306.j  302.+300.j  125.+240.j]
+ [ 988.+205.j  722.+309.j  464.+345.j  211.+321.j]
+ [1328.+125.j  993.+289.j  658.+388.j  329.+424.j]
+ [1698.  +0.j 1292.+246.j  886.+429.j  487.+549.j]
+ [1328.-125.j 1063.+127.j  798.+334.j  539.+496.j]
+ [ 988.-205.j  846. +41.j  704.+257.j  567.+443.j]
+ [ 696.-240.j  653. -12.j  610.+198.j  571.+390.j]]
+```
+
+which is probably true since *g=u\*v* is basically the same as the *h* that we computed in our [earlier blog post]({% post_url 2020-12-01-fftw++4 %}).
