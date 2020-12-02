@@ -52,7 +52,8 @@ dkx=2*np.pi/Lx
 dky=2*np.pi/Ly
 ```
 
-Now in order to compute the two nonlinear terms of \eqref{eq:nl} using fftw++, we need to use three inputs and four outputs (or vice versa with a slightly different formulation) resulting in 7 fourier transforms per stage (as opposed to 8 which would be required for 6 inputs and 2 outputs one would need with the explicit forms). Disadvantage is that we then need to form the nonlinear terms by multiplications with **k**'s and summations. In contrast the explicit formulation gives the nonlinear terms directly. Therefore we will implement both, in order to compare the two.
+Now in order to compute the two nonlinear terms of \eqref{eq:nl} using fftw++, we need to use three inputs and four outputs (or vice versa with a slightly different formulation) resulting in 7 fourier transforms per stage (as opposed to 8 which would be required for 6 inputs and 2 outputs one would need with the explicit forms). Disadvantage of this formulation is that we need to compute the nonlinear terms using the convolutions that we computed here, whereas in the explicit
+formulation the convolutions that we compute are directly the nonlinear terms.
 
 ### 3 input 4 output Advection (multadvection34):
 

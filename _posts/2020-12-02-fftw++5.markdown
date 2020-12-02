@@ -7,6 +7,7 @@ comments: true
 categories : python fftw++ coding turbulence
 tags : python fftw++ coding turbulence
 excerpt_separator : <!--more-->
+image : fftwpp_schema.svg
 ---
 
 [FFTW++](https://github.com/dealias/fftwpp) can be used to compute multiple convolutions that are added together. Looking at the code and in particular
@@ -32,6 +33,10 @@ Note that **multbinary** and **multbinary2** has both real and complex forms, wh
 what we convolve ar real arrays.
 
 ## Using a Multiplier
+
+In order to understand what the multiplier function does, we can take a look at the diagram shown below.
+
+[![fftwpp_schema](../assets/images/fftwpp_schema.svg)](../assets/images/fftwpp_schema.svg)
 
 Here we want to use one of the multiplier functions above from python. Let's say we want to use **multadvection2**. We first need to add the following to our c wrapper file:
 
