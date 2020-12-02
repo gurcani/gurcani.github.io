@@ -126,4 +126,4 @@ $$
 \end{equation}
 $$
 
-This is the reason we first compute $$u^2-v^2$$ and $$uv$$ in **multadvection2** so that we can form the nonlinear term.
+This is the reason we first compute $$u^2-v^2$$ and $$uv$$ in **multadvection2** so that we can form the nonlinear term as in the above.
