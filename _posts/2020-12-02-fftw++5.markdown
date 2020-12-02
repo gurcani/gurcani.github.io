@@ -16,23 +16,15 @@ We have already used one of these earlier, which is the basic **multbinary** fun
 
 <!--more-->
 
--**multautocorrelation** : F[0][j] \*= conj(F[0][j])
-
--**multautoconvolution** : F[0][j] \*= F[0][j]
-
--**multcorrelation** : F[0][j] \*= conj(F[1][j])
-
--**multbinary** : F[0][j] \*= F[1][j]
-
--**multbinary2** : F[0][j]=F[0][j]\*F[2][j]+F[1][j]\*F[3][j]
-
--**multbinary3** : F[0][j]=F[0][j]\*F[3][j]+F[1][j]\*F[4][j]+F[2][j]\*F[5][j]
-
--**multbinary4** : F[0][j]=F[0][j]\*F[4][j]+F[1][j]\*F[5][j]+F[2][j]\*F[6][j]+F[3][j]\*F[7][j]
-
--**multbinary8** : the same idea.
-
--**multadvection2** : F[0][j]=F[0][j]\*F[0][j]-F[1][j]\*F[1][j] and F1[j]=F[0][j]\*F[1][j] [^1]
+- **multautocorrelation** : F[0][j] \*= conj(F[0][j])
+- **multautoconvolution** : F[0][j] \*= F[0][j]
+- **multcorrelation** : F[0][j] \*= conj(F[1][j])
+- **multbinary** : F[0][j] \*= F[1][j]
+- **multbinary2** : F[0][j]=F[0][j]\*F[2][j]+F[1][j]\*F[3][j]
+- **multbinary3** : F[0][j]=F[0][j]\*F[3][j]+F[1][j]\*F[4][j]+F[2][j]\*F[5][j]
+- **multbinary4** : F[0][j]=F[0][j]\*F[4][j]+F[1][j]\*F[5][j]+F[2][j]\*F[6][j]+F[3][j]\*F[7][j]
+- **multbinary8** : the same idea.
+- **multadvection2** : F[0][j]=F[0][j]\*F[0][j]-F[1][j]\*F[1][j] and F1[j]=F[0][j]\*F[1][j] [^1]
 
 [^1]: See [Basdevant, *J. Comp. Phys*, **50**, pp. 209-214 (1983)](https://doi.org/10.1016/0021-9991(83)90064-5)
 
