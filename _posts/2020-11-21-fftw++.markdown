@@ -2,8 +2,8 @@
 layout : post
 title : Trying to Figure Out How to Use FFTW++ (1D)
 date : 2020-11-21
-mathjax: true
-comments: true
+math : true
+comments : true
 categories : python fftw++ coding
 tags : python fftw++ coding
 excerpt_separator: <!--more-->

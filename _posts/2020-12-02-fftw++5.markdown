@@ -2,7 +2,7 @@
 layout : post
 title : Considerations on Multiple Convolutions in Pseudo-spectral Formulation
 date : 2020-12-02
-mathjax: true
+math : true
 comments: true
 categories : python fftw++ coding turbulence
 tags : python fftw++ coding turbulence
