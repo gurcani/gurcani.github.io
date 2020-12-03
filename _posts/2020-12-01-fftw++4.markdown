@@ -43,7 +43,7 @@ As a concrete example, consider the array **g** that we used in [our earlier pos
 
 Note that the mpi example given in fftw++ ([fft2rconv.cc](https://github.com/dealias/fftwpp/blob/master/mpi/examples/fft2rconv.cc)) uses non-compact arrays, while the basic example of the 2D Hermitian symmetric convolution ([exampleconv2.cc](https://github.com/dealias/fftwpp/blob/master/examples/exampleconv2.cc)) uses compact arrays.
 
-We have added an example which uses the same compact arrays of the basic example using **ImplicitHConvolution2MPI** as in the mpi example in our fork of the fftw++ (see [exampleconv2_mpi.cc](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/exampleconv2_mpi.cc) ).
+We have added an example which uses the same compact arrays of the basic example using **ImplicitHConvolution2MPI** as in the mpi example in our fork of the fftw++ (see [exampleconv2_mpi.cc](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/exampleconv2_mpi.cc) ).
 
 It can be compiled by hand like this:
 ```sh
@@ -52,7 +52,7 @@ mpic++ exampleconv2_mpi.cc -pthread -I../ -I../mpi/ -I../tests/ -L./ -lfftwpp -l
 
 In fact probably the best way to see how this works is using the python version of the same example. Which can be written using the same wrapper that we used [earlier]({% post_url 2020-11-26-fftw++3 %}), as:
 
-[**test2.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test2.py)
+[**test2.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test2.py)
 ```py
 comm=MPI.COMM_WORLD
 commp=MPI._addressof(comm)

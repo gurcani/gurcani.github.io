@@ -20,7 +20,7 @@ Instead we will write the multiplier function in C++ but call some generalized r
 
 We start by adding the following two routines in the c wrapper:
 
-[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.h)
 ```c
   ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpiAB(split &dg,split &du,
 							bool xcomp, bool ycomp, double __complex__ *g, unsigned int A, unsigned int B){
@@ -49,7 +49,7 @@ a python list is discussed [here]({% post_url 2020-12-03-ctypes2 %}).
 
 we also need the following python wrappers:
 
-[**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py)
+[**test5.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test5.py)
 ```
 clib.fftwpp_create_hconv2d_mpiAB.restype = c_void_p
 clib.fftwpp_create_hconv2d_mpiAB.argtypes =[c_void_p,c_void_p,
@@ -85,14 +85,14 @@ Using \eqref{eq:phi}, we can write the multiplier function **multadvection62** a
 
 as before, we start by adding to the declaration to the header file:
 
-[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.h)
 ```c
 realmultiplier multadvection62;
 ```
 
 Then we add the actual multiplier function in the c++ file:
 
-[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc)
+[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.cc)
 ```c
   void multadvection62(double **F, unsigned int m,
 		      const unsigned int indexsize,
@@ -133,7 +133,7 @@ cptr=clib.fftwpp_create_hconv2d_mpiAB(dgptr,duptr,xcomp,ycomp,f,3,4)
 
 with the rest of the parameters explained in earlier examples, for example as in [here]({% post_url 2020-11-26-fftw++3 %}). Let's assume that we have two arrays, **phik** and **nk** that are somehow initialized using:
 
-[**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py)
+[**test5.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test5.py)
 ```py
 phik[int(not xcomp):,:]=np.array([[l+1j*(m+dg.y0) for m in range(dg.y)] for l in range(dg.X-int(not xcomp)) ])
 nk[int(not xcomp):,:]=np.array([[2*l+1j*(m+dg.y0+1) for m in range(dg.y)] for l in range(dg.X-int(not xcomp))])
@@ -190,4 +190,4 @@ G[1]= [[   0.-576.j  -54.-402.j  -72.-272.j  -48.-144.j]
  [   0.+576.j   42.+254.j   24.+160.j  -60.+300.j]]
 ```
 
-which can be verified by computing convolution pairs one by one and putting them together to construct the two nonlinear terms. Again it is not very interesting to show here, but it works. You can check the python file [**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py) for more details.
+which can be verified by computing convolution pairs one by one and putting them together to construct the two nonlinear terms. Again it is not very interesting to show here, but it works. You can check the python file [**test5.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test5.py) for more details.

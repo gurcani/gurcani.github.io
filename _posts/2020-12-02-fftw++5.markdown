@@ -11,7 +11,7 @@ image : fftwpp_schema.svg
 ---
 
 [FFTW++](https://github.com/dealias/fftwpp) can be used to compute multiple convolutions that are added together. Looking at the code and in particular
-[convolution.cc](https://github.com/dealias/fftwpp/blob/master/convolution.cc), we find that this can be achieved by using what seems to be called **multiplier functions** (or classes).
+[convolution.cc](https://github.com/dealias/fftwpp/blob/gtest/convolution.cc), we find that this can be achieved by using what seems to be called **multiplier functions** (or classes).
 
 We have already used one of these earlier, which is the basic **multbinary** function, which computes **F[0][j] *= F[1][j]** with two arrays.
 
@@ -40,7 +40,7 @@ In order to understand what the multiplier function does, we can take a look at 
 
 Here we want to use one of the multiplier functions above from python. Let's say we want to use **multadvection2**. We first need to add the following to our c wrapper file:
 
-[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.h)
 ```c
 ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpi_adv2(split &dg,split &du,
 						      bool xcomp, bool ycomp, double __complex__ *g){
@@ -61,7 +61,7 @@ By default the convolution computes a single output, whereas here we compute two
 
 We can wrap these functions into python as before:
 
-[**test3.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test3.py)
+[**test3.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test3.py)
 ```py
 clib.fftwpp_create_hconv2d_mpi_adv2.restype = c_void_p
 clib.fftwpp_create_hconv2d_mpi_adv2.argtypes =[c_void_p,c_void_p,c_bool, c_bool,ndpointer(dtype = np.complex128)]

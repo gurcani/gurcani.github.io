@@ -67,9 +67,9 @@ F[2][j]=F[0][j]\*F[2][j]
 F[3][j]=F[1][j]\*F[2][j]
 ```
 
-with the input variables **F[:][j]=u,v,n**. This can be implemented in C++ starting from **multadvection2** in [convolution.cc](https://github.com/dealias/fftwpp/blob/master/convolution.cc) and modifying by adding the necessary terms as follows. Here I show only the non sse2 part of the routine, the full function can be found in [cfftwpp.cc](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc).
+with the input variables **F[:][j]=u,v,n**. This can be implemented in C++ starting from **multadvection2** in [convolution.cc](https://github.com/dealias/fftwpp/blob/gtest/convolution.cc) and modifying by adding the necessary terms as follows. Here I show only the non sse2 part of the routine, the full function can be found in [cfftwpp.cc](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.cc).
 
-[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc)
+[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.cc)
 ```c
   void multadvection34(double **F, unsigned int m,
 		      const unsigned int indexsize,
@@ -100,7 +100,7 @@ with the input variables **F[:][j]=u,v,n**. This can be implemented in C++ start
 We need to add the decalaration and the necessary functions to initialize and compute the convolution 
 to the header file:
 
-[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.h)
 ```c
   realmultiplier multadvection34;
 /*...*/
@@ -123,7 +123,7 @@ to the header file:
 
 and finally the necessary wrappers to the python file:
 
-[**test4.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test4.py)
+[**test4.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test4.py)
 ```py
 clib.fftwpp_create_hconv2d_mpi_adv34.restype = c_void_p
 clib.fftwpp_create_hconv2d_mpi_adv34.argtypes =[c_void_p,c_void_p,
@@ -139,7 +139,7 @@ clib.fftwpp_hconv2d_mpi_convolve_adv34.argtypes = [ c_void_p,
 
 with all these we can call the wrapped python functions written (in a simpler form than what appears in the actual file) as follows:
 
-[**test4.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test4.py)
+[**test4.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test4.py)
 ```py
     cptr=clib.fftwpp_create_hconv2d_mpi_adv34(dgptr,duptr,xcomp,ycomp,f)
 

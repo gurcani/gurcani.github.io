@@ -19,7 +19,7 @@ To be fair, this is rarely used to describe 2D arrays, even in C. But it can som
 
 Consider the C function defined as:
 
-[**fcpytest2.c**](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/cpytest/fcpytest2.c)
+[**fcpytest2.c**](https://github.com/gurcani/gurcani.github.io/blob/gtest/assets/examples/cpytest/fcpytest2.c)
 ```c
 #include <complex.h>
 
@@ -40,7 +40,7 @@ the size of the collection if defined by **N**.
 
 Imagine we have a list of arrays in python, defined as follows:
 
-[**test2.py**](https://github.com/gurcani/gurcani.github.io/blob/master/assets/examples/cpytest/test2.py)
+[**test2.py**](https://github.com/gurcani/gurcani.github.io/blob/gtest/assets/examples/cpytest/test2.py)
 ```py
 import numpy as np
 

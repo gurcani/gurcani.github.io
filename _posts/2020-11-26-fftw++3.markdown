@@ -22,7 +22,7 @@ just the functionality that we need.
 
 In order to do that we first [fork](https://github.com/gurcani/fftwpp) fftw++. Create a directory called libfftwpp in the main directory tree and add the following file there:
 
-[**CMakeLists.txt**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/CMakeLists.txt)
+[**CMakeLists.txt**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/CMakeLists.txt)
 ```
 cmake_minimum_required(VERSION 3.10)
 project(fftwpp VERSION 0.1 LANGUAGES C CXX)
@@ -42,7 +42,7 @@ in fftw++ that we can call from python instead of trying to do what we want usin
 
 We then write a c wrapper with bunch of functions that we would like to access in the form of a header file:
 
-[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.h)
 ```h
 #ifndef _CFFTWPP_H_
 #define _CFFTWPP_H_
@@ -102,7 +102,7 @@ extern "C" {
 
 and an acoompanying c file that will basically add this header into the library:
 
-[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc)
+[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/cfftwpp.cc)
 ```c++
 #include "Complex.h"
 #include "cfftwpp.h"
@@ -119,7 +119,7 @@ as you may have noticed these functions are mostly MPI functions. This is mainly
 
 Of course one should see the above file as a starting point and add whatever one wants to use from the fftw++ library in this file. If we create a python file (in the same directory) that can call these functions, we need something like:
 
-[**test.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test.py)
+[**test.py**](https://github.com/gurcani/fftwpp/blob/gtest/libfftwpp/test.py)
 ```py
 import numpy as np
 import os
