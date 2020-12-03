@@ -10,7 +10,9 @@ excerpt_separator : <!--more-->
 image : fftwpp_advres.svg
 ---
 
-Instead of going around and adding every different case, we will try to generalize the method above so that we can use it from python more or less directly. In fact we can probably even write multiplier functions in python, implemented in numba so that they can be fast enough. Instead we will write the multiplier function in C++ but call some generalized routines for creating the convolution class and performing the convolution using this function.
+Instead of going around and adding every different case, we will try to generalize the method for calling the convolution functions
+so that we can use it from python more or less directly. In fact we can probably even write multiplier functions in python, implemented in numba so that they can be fast enough. 
+Instead we will write the multiplier function in C++ but call some generalized routines for creating the convolution class and performing the convolution using this function.
 
 <!--more-->
 
