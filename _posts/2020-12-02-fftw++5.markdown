@@ -40,7 +40,7 @@ In order to understand what the multiplier function does, we can take a look at 
 
 Here we want to use one of the multiplier functions above from python. Let's say we want to use **multadvection2**. We first need to add the following to our c wrapper file:
 
-**cfftwpp.h**
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
 ```c
 ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpi_adv2(split &dg,split &du,
 						      bool xcomp, bool ycomp, double __complex__ *g){
@@ -59,8 +59,9 @@ void fftwpp_hconv2d_mpi_convolve_adv2(ImplicitHConvolution2MPI* hconv, double __
 Note that the two integers **2,2** at the end of the line with **ImplicitHConvolution2MPI** correspond to **A=2**, **B=2** in the initialization, which define the number of input and output arguments.
 By default the convolution computes a single output, whereas here we compute two outputs for two inputs.
 
-We can call wrap these functions into python as before:
+We can wrap these functions into python as before:
 
+[**test3.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test3.py)
 ```py
 clib.fftwpp_create_hconv2d_mpi_adv2.restype = c_void_p
 clib.fftwpp_create_hconv2d_mpi_adv2.argtypes =[c_void_p,c_void_p,c_bool, c_bool,ndpointer(dtype = np.complex128)]

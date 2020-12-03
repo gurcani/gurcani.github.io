@@ -1,0 +1,188 @@
+---
+layout : post
+title : Convolutions with Arbitrary Multipler Functions in FFTW++
+date : 2020-12-03 12:37:00 CET
+math: true
+comments: true
+categories : python fftw++ coding turbulence
+tags : python fftw++ coding turbulence
+excerpt_separator : <!--more-->
+image : fftwpp_advres.svg
+---
+
+Instead of going around and adding every different case, we will try to generalize the method above so that we can use it from python more or less directly. In fact we can probably even write multiplier functions in python, implemented in numba so that they can be fast enough. Instead we will write the multiplier function in C++ but call some generalized routines for creating the convolution class and performing the convolution using this function.
+
+<!--more-->
+
+## Arbitrary Convolution Routines:
+
+We start by adding the following two routines in the c wrapper:
+
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+```c
+  ImplicitHConvolution2MPI* fftwpp_create_hconv2d_mpiAB(split &dg,split &du,
+							bool xcomp, bool ycomp, double __complex__ *g, unsigned int A, unsigned int B){
+    unsigned int nx=dg.X,ny=(dg.Y-1)*2+xcomp;
+    unsigned int nyp=ny/2+1;
+    unsigned int mx=(nx+1)/2;
+    unsigned int my=(ny+1)/2;
+    return new ImplicitHConvolution2MPI(mx,my,xcomp,ycomp,dg,du,(Complex *)g,dfoptions,A,B);
+  }
+
+  void fftwpp_hconv2d_mpi_convolve_adv(ImplicitHConvolution2MPI* hconv, double __complex__ **Gp, realmultiplier mul) {
+    Complex **G = (Complex **) Gp;
+    hconv->convolve((Complex**)G,mul);
+  }
+
+```
+
+Here the first function creates a convolution class with arbitrary number of input and output arrays 
+(**A** and **B** being the number of input and output arrays respectively), while the second function performs this
+convolution with a provided multiplier function.
+
+An example of a multiplier function can be found below or in our previous discussion [here]({% post_url 2020-12-02-fftw++6 %}).
+
+Since the number of inputs to **fftwpp_hconv2d_mpi_convolve_adv** is not apriori known we use a pointer of pointers as a collection of arrays. Passing this from 
+a python list is discussed [here]({% post_url 2020-12-03-ctypes2 %}).
+
+we also need the following python wrappers:
+
+[**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py)
+```
+clib.fftwpp_create_hconv2d_mpiAB.restype = c_void_p
+clib.fftwpp_create_hconv2d_mpiAB.argtypes =[c_void_p,c_void_p,
+                                                c_bool, c_bool,
+                                                ndpointer(dtype = np.complex128),c_uint,c_uint]
+
+clib.fftwpp_hconv2d_mpi_convolve_adv.argtypes = [ c_void_p,
+                                          POINTER(POINTER(c_double)),
+                                          c_void_p]
+```
+
+### 6 input 2 output Advection (multadvection62):
+
+In order to implement the usual 6 input 2 output advection routines for 2D passive scalar problem, which can be written as:
+
+$$
+\begin{equation}\label{eq:phi}\tag{1}
+\begin{split}
+\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi\right]_{k} & = \partial_{x}\Phi\partial_{y}\omega-\partial_{y}\Phi\partial_{x}\omega\\
+\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla n\right]_{k} & = \partial_{x}\Phi\partial_{y}n-\partial_{y}\Phi\partial_{x}n 
+\end{split}
+\end{equation}
+$$
+
+This form requires 6 input arrays corresponding to the Fourier transforms of $$\partial_{x}\Phi,\partial_{y}\Phi,\partial_{x}\omega,\partial_{y}\omega,\partial_{x}n,$$ and $$\partial_{y}\omega$$ or:
+
+```py
+F=(1j*kx*phik,1j*ky*phik,-1j*kx*ksqr*phik,-1j*ky*ksqr*phik,1j*kx*nk,1j*ky*nk)
+```
+
+Using \eqref{eq:phi}, we can write the multiplier function **multadvection62** as follows:
+
+as before, we start by adding to the declaration to the header file:
+
+[**cfftwpp.h**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.h)
+```c
+realmultiplier multadvection62;
+```
+
+Then we add the actual multiplier function in the c++ file:
+
+[**cfftwpp.cc**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/cfftwpp.cc)
+```c
+  void multadvection62(double **F, unsigned int m,
+		      const unsigned int indexsize,
+		      const unsigned int *index,
+		      unsigned int r, unsigned int threads)
+  {
+    double* F0=F[0];
+    double* F1=F[1];
+    double* F2=F[2];
+    double* F3=F[3];
+    double* F4=F[4];
+    double* F5=F[5];
+#ifdef __SSE2__
+/*...*/
+#else
+    for(unsigned int j=0; j < m; ++j) {
+      double dxphi=F0[j];
+      double dyphi=F1[j];
+      double dxom=F2[j];
+      double dyom=F3[j];
+      double dxn=F4[j];
+      double dyn=F5[j];
+      F0[j]=dxphi*dyom-dyphi*dxom;
+      F1[j]=dxphi*dyn-dyphi*dxn;
+    }
+#endif
+```
+
+where we ommitted the sse2 part since the rest is clear enough. You can take a look at the file link above the code to see the full function.
+
+In order to implement this using the arbitrary convolution functions above, we can call the **fftwpp_create_hconv2d_mpiAB** function as:
+
+```py
+cptr=clib.fftwpp_create_hconv2d_mpiAB(dgptr,duptr,xcomp,ycomp,f,3,4)
+```
+
+with the rest of the parameters explained in earlier examples, for example as in [here]({% post_url 2020-11-26-fftw++3 %}). Let's assume that we have two arrays, **phik** and **nk** that are somehow initialized using:
+
+[**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py)
+```py
+phik[int(not xcomp):,:]=np.array([[l+1j*(m+dg.y0) for m in range(dg.y)] for l in range(dg.X-int(not xcomp)) ])
+nk[int(not xcomp):,:]=np.array([[2*l+1j*(m+dg.y0+1) for m in range(dg.y)] for l in range(dg.X-int(not xcomp))])
+if (dg.y0+dg.y==dg.Y and not ycomp):
+    phik[:,-1]=0
+    nk[:,-1]=0
+```
+
+and finally call the convolution routine via:
+```py
+G=(1j*kx*phik,1j*ky*phik,-1j*kx*ksqr*phik,-1j*ky*ksqr*phik,1j*kx*nk,1j*ky*nk)
+Gp=(POINTER(c_double)*len(G))(*[l.ctypes.data_as(POINTER(c_double)) for l in G])
+clib.fftwpp_hconv2d_mpi_convolve_adv(cptr,Gp,clib.multadvection62)
+```
+
+the list **G** contains the list of arrays that we want to pass as the 6 inputs to the convolution routine. Gp is a temporary "pointer to pointer to double" variable that is passed to C in the next line. Finally the convolution is performed 
+with the last line using the multiplier function multadvection62. Note that as we have included the function that we wrote above in the shared library libfftwpp.so that is created (see [here]({% post_url 2020-11-26-fftw++3 %}) for how to build the shared library), the multiplier function can be passed simply as clib.multadvection.
+
+In order to verify these results, we can compute the convolutions among them, one by one and calculate the sums or differences as needed in order to construct the two nonlinear terms as needed.
+
+In particular if we use integer wave-numbers by choosing:
+
+```py
+Lx=2*np.pi
+Ly=2*np.pi
+```
+
+the results should remain integers (complex numbers of course, but with both real and imaginary parts that are in fact integers), so we can round them to the nearest integer and show the results as:
+
+```py
+G=[np.rint(l.real)+1j*np.rint(l.imag) for l in G]
+print("G[0]=",G[0])
+print("G[1]=",G[1])
+```
+
+The resutls can be seen below in the figure and as the python output:
+
+[![fftwpp_advres](/assets/images/fftwpp_advres.svg)](/assets/images/fftwpp_advres.svg)
+
+```
+G[0]= [[ 3240.   +0.j  3462.+1080.j  2832.+1890.j  1440.+1980.j]
+ [ 2880.   +0.j  3848.+1096.j  3488.+2144.j  1920.+2624.j]
+ [ 1260.   +0.j  2680. +676.j  2791.+1619.j  1698.+2444.j]
+ [    0.   +0.j    -0.   +0.j     0.   +0.j    -0.   +0.j]
+ [ 1260.   +0.j  -928. -116.j -2017.-1129.j -2112.-2794.j]
+ [ 2880.   +0.j    88. +184.j -1856.-1024.j -3072.-3424.j]
+ [ 3240.   +0.j   846. +360.j -1236. -630.j -3096.-2880.j]]
+G[1]= [[   0.-576.j  -54.-402.j  -72.-272.j  -48.-144.j]
+ [   0.-480.j  -47.-330.j  -68.-216.j  -58. -88.j]
+ [   0.-288.j  -33.-217.j  -60.-136.j  -78. +18.j]
+ [   0.  +0.j  -12. -76.j  -48. -40.j -108.+192.j]
+ [   0.+288.j   15.+107.j  -12. +80.j  -84.+252.j]
+ [   0.+480.j   33.+212.j   12.+140.j  -68.+284.j]
+ [   0.+576.j   42.+254.j   24.+160.j  -60.+300.j]]
+```
+
+which can be verified by computing convolution pairs one by one and putting them together to construct the two nonlinear terms. Again it is not very interesting to show here, but it works. You can check the python file [**test5.py**](https://github.com/gurcani/fftwpp/blob/master/libfftwpp/test5.py) for more details.
