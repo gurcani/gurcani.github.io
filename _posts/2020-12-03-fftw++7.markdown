@@ -123,7 +123,9 @@ Then we add the actual multiplier function in the c++ file:
 
 where we ommitted the sse2 part since the rest is clear enough. You can take a look at the file link above the code to see the full function.
 
-In order to implement this using the arbitrary convolution functions above, we can call the **fftwpp_create_hconv2d_mpiAB** function as:
+### Using it in Python:
+
+In order to use the arbitrary convolution functions above, we can call the **fftwpp_create_hconv2d_mpiAB** function as:
 
 ```py
 cptr=clib.fftwpp_create_hconv2d_mpiAB(dgptr,duptr,xcomp,ycomp,f,3,4)
