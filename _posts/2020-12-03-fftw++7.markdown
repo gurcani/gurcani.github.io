@@ -74,7 +74,8 @@ $$
 \end{equation}
 $$
 
-This form requires 6 input arrays corresponding to the Fourier transforms of $$\partial_{x}\Phi,\partial_{y}\Phi,\partial_{x}\omega,\partial_{y}\omega,\partial_{x}n,$$ and $$\partial_{y}\omega$$ or:
+This form requires 6 input arrays corresponding to the Fourier transforms of $$\partial_{x}\Phi,\partial_{y}\Phi,\partial_{x}\omega,\partial_{y}\omega,\partial_{x}n,$$ 
+and $$\partial_{y}\n$$ or:
 
 ```py
 F=(1j*kx*phik,1j*ky*phik,-1j*kx*ksqr*phik,-1j*ky*ksqr*phik,1j*kx*nk,1j*ky*nk)
