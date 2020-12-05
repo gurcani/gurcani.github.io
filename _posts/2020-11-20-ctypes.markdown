@@ -42,7 +42,7 @@ gcc -shared -o libcpytest.so fcpytest.o
 
 which generates a shared c library called **libcpytest.so**, callable from pyhton using ctypes as:
 
-**test.py:**
+[**test.py**](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/cpytest/test.py))
 ```py
 from ctypes import cdll
 libcpy = cdll.LoadLibrary('./libcpytest.so')
@@ -54,7 +54,9 @@ libcpy.fcpytest()
 C uses structures a lot. You can pass them back to python using pointers. You can also reconstruct the C structure
 in python using the **Structure** class of ctypes. Here is a simple example of passing by pointers:
 
-**fcpytest.c:**
+
+[**fcpytest.c**](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/cpytest/fcpytest.c))
+
 ```c
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +127,7 @@ This is the function we will call from C, which will in turn call the python fun
 
 Let us now see how this works in C:
 
-**fcpytest.c:**
+[**fcpytest.c**](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/cpytest/fcpytest.c))
 ```c
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,7 +154,7 @@ basically irrelavant for this example, but can be useful if we wanto to manipula
 
 Finally if we put everything together in a single python script:
 
-**test.py:**
+[**test.py**](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/cpytest/test.py))
 ```py
 import numpy as np
 from ctypes import cdll,c_int,c_void_p,c_double,CFUNCTYPE,POINTER
