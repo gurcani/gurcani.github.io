@@ -21,5 +21,5 @@ def boxed_print(v):
     plt.axis('off')
     for lx in range(u.shape[0]):
         for ly in range(u.shape[1]):
-            plt.text(0.5+lx,0.5+ly,'$'+str(u[lx,ly])+'$',horizontalalignment='center',verticalalignment='center',fontsize=14)
+            plt.text(0.5+lx,0.5+ly,'$'+"{:10.2f}".format(u[lx,ly])+'$',horizontalalignment='center',verticalalignment='center',fontsize=14)
     plt.tight_layout()
