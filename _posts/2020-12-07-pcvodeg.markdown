@@ -1,9 +1,9 @@
 ---
 layout : post
-title : MPCVODE: Minimal CVODE Python Wrapper that can use MPI
+title : MPCVODE\: Minimal CVODE Python Wrapper that can use MPI
 date : 2020-12-07 23:06:00 CET
-math: true
-comments: true
+math : true
+comments : true
 categories : python cvode ode mpi
 tags : python cvode ode mpi
 excerpt_separator : <!--more-->
