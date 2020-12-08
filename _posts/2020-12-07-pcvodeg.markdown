@@ -1,6 +1,6 @@
 ---
 layout : post
-title : MPCVODE\: Minimal CVODE Python Wrapper that can use MPI
+title : Minimal CVODE Python Wrapper that can use MPI
 date : 2020-12-07 23:06:00 CET
 math : true
 comments : true
@@ -16,7 +16,7 @@ Even though there are many different ODE solvers in python. It seems that a simp
 
 <!--more-->
 
-## Minimalist Python Wrapper for CVODE:
+## Minimalist Python Wrapper for CVODE
 
 [MPCVode](https://github.com/gurcani/mpcvode) is a really minimalistic python wrapper to CVODE that is intended to be used by modifiying the C code as needed.
 
