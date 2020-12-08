@@ -8,6 +8,7 @@ categories : python cvode ode mpi
 tags : python cvode ode mpi
 excerpt_separator : <!--more-->
 image : mpcvode_ex.svg
+toc : true
 ---
 
 Even though there are many different ODE solvers in python. It seems that a simple parallel adaptive time step solver that can use mpi is lacking. One either has to use a huge framework, or fallback to fixed time step solvers.
