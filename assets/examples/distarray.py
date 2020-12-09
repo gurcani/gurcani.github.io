@@ -56,7 +56,7 @@ class distarray(np.ndarray):
 comm=MPI.COMM_WORLD
 Nx,Ny=128,128
 f=distarray((12,Nx,Ny))
-print("rank = ",comm.rank, "f.shape=",f.shape, "local_slice=",f.local_slice)
+#print("rank = ",comm.rank, "f.shape=",f.shape, "local_slice=",f.local_slice)
 x,y=np.meshgrid(np.linspace(-1,1,Nx),np.linspace(-1,1,Ny),indexing='ij')
 f[0,:,:]=(np.sin(4*np.pi*x+2*np.pi*y)*np.exp(-x**2/2/0.2-y**2/2/0.1))[f.local_slice[1:]]
 # plt.pcolormesh(x[f.local_slice],y[f.local_slice],f,shading='auto',rasterized=True,cmap='seismic',vmin=-1,vmax=1)
