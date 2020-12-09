@@ -6,14 +6,17 @@ Created on Tue Dec  8 17:38:15 2020
 @author: ogurcan
 """
 
-from distarray import distarray
 from numba import njit
 import numpy as np
 from time import time
-from ctypes import cdll,c_uint,c_void_p
+from ctypes import cdll,c_uint
 from numpy.ctypeslib import ndpointer
 from mpi4py import MPI
 from os import path
+import sys
+
+sys.path.insert(1, path.realpath(path.dirname(__file__)+'/../'))
+from distarray import distarray
 
 comm=MPI.COMM_WORLD
 

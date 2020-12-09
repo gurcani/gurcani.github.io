@@ -74,6 +74,11 @@ mult.o: mult.c
         gcc $(CFLAGS) -fpic -c mult.c
 ```
 
-when we perform a number of mpi runs to compute running speeds. We get the following chart:
+when we perform a set of mpi runs with an input matrix of global size **2,1024,2047** in order to compute running speeds. We get the following chart:
 
 [![speedbars](/assets/images/speedbars.svg)](/assets/images/speedbars.svg)
+
+These are the averge time in seconds that it takes for the root process to compute 10 such multiplications (with always the same matrices) using different implementations, with error bars indicationg standard deviation 
+among these 10 results.
+
+Details of the benchmark can be found [here](https://github.com/gurcani/gurcani.github.io/tree/master/assets/benchmark).
