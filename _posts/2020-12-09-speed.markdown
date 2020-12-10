@@ -82,3 +82,5 @@ These are the averge time in seconds that it takes for the root process to compu
 among these 10 results.
 
 Details of the benchmark can be found [here](https://github.com/gurcani/gurcani.github.io/tree/master/assets/examples/benchmark).
+
+Note that when we use **fastmath=True** for numba, in general we gain a bit more speedup. This makes **numba** potentially faster than **C** if written correctly.

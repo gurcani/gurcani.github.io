@@ -15,7 +15,7 @@ from mpi4py import MPI
 from os import path
 import sys
 
-sys.path.insert(1, path.realpath(path.dirname(__file__)+'/../'))
+sys.path.insert(1, path.realpath(path.dirname(path.abspath(__file__))+'/../'))
 from distarray import distarray
 
 comm=MPI.COMM_WORLD
@@ -35,7 +35,7 @@ def mult1(v,a,b,res):
 def mult2(v,a,b,res):
     res[:]=np.sum(np.multiply(a,u),1)+b
 
-@njit
+@njit(fastmath=True)
 def mult3(v,a,b,res):
     for j in range(v.shape[0]):
         for lx in range(v.shape[1]):
