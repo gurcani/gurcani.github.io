@@ -7,7 +7,7 @@ comments : true
 categories : python mpi mpi4py-fft
 tags : python mpi mpi4py-fft
 excerpt_separator : <!--more-->
-image : speedbars.svg
+image : pfft_ex1_in.svg
 ---
 
 [mpi4py-fft](https://mpi4py-fft.readthedocs.io) is a parallel fft library for python which uses serial fftw (so not the fftw3_mpi directly) via mpi4py in order to achieve two and three dimensional parallel ffts. It is well documented and therefore we do not need to introduce how it is used here.
