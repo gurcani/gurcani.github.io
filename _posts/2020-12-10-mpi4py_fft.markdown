@@ -52,7 +52,6 @@ uk=newDistArray(pf,forward_output=True)
 - Note that for some reason **collapse = True** gives the error below. So we need to use the default choice **collapse=False**, which I wrote explicitly to warn the reader.
 
  >File "/usr/lib/python3.8/site-packages/mpi4py_fft/libfft.py", line 400, in __init__
-
  >assert len(self.axes) == 1
 
 - The arrays **u** and **uk** in thie example have the (global) shapes **(6,192,192)** and **(6,128,65)** note that **Npx=192** and **Nyh=int(Ny/2+1)=65**.
