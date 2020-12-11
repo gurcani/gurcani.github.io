@@ -117,7 +117,7 @@ which actually gives:
 [ 65 66 ... 126 127 0 1 ... 63 64]
 ```
 
-This puts the zero at a symmetric middle of the range if we drop the last element (i.e. the nyquist mode).
+This puts the zero at a symmetric middle of the range if we drop the last element (i.e. the nyquist mode). All this, means that the wavenumbers can be written as:
 
 ```
 kx=np.r_[0:int(Nx/2)+1,-int(Nx/2)+1:0]*dkx
