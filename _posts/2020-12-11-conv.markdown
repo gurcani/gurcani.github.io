@@ -51,17 +51,15 @@ class hwconv:
         hermitian_symmetrize(u)
         if(u.local_slice()[2].stop==u.global_shape[2]):
             u[:,:,-1]=0
-        u[:,int(Nx/2),:]=0
+        u[:,int(self.Nx/2),:]=0
         self.fmultin(u,self.datk,self.kx,self.ky,self.ksqr)
         self.ffti.backward(self.datk,self.dat)
         self.fmultout(self.dat)
         self.ffto.forward(self.dat[:self.num_out,],self.datk[:self.num_out,])
         if(self.datk.local_slice()[2].stop==self.datk.global_shape[2]):
             self.datk[:,:,-1]=0
-        self.datk[:,int(Nx/2),:]=0
+        self.datk[:,int(self.Nx/2),:]=0
         return self.datk[:self.num_out,]
-
-
 ```
 
 - The idea is to compute **num_out** number of convolutions using **num_in** number of initial input fields.
