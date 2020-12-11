@@ -7,7 +7,6 @@ comments : true
 categories : python mpi mpi4py-fft
 tags : python mpi mpi4py-fft
 excerpt_separator : <!--more-->
-image : pfft_ex1_in.svg
 ---
 
 The primary computation in a pseudo-spectral code is the convolution. Here we develop a python class that can compute 
