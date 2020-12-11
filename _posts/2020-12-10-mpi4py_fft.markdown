@@ -99,31 +99,68 @@ the difference become comparable to machine precision.
 
 ## Wavenumbers and FFT
 
-It is clear from the figures above that the mpi4py_fft computes non centered ffts as is usually the case with fft routines. 
-
-<!---
-However it seems that it uses a slightly different convention than the **numpy.fft.fftshift** maybe related to how it handles the nyquist mode. For example if we use the usual convention of numpy fft's **fftshift** routine applied to a standard arange from 0 to **Nx=128** we get:
-
-```
-[ 64 65 ... 126 127 0 1 ... 62 63]
-```
-
-however if we plot the **uk** that we compute above and apply this shift we find that the first pixel is actually wrapped aroun. The correct form seems to be
+It is clear from the figures above that the mpi4py_fft computes non centered ffts as is usually the case with fft routines. The corresponding wavenumbers can be written as follows:
 
 ```py
-inds2=np.r_[int(Nx/2)+1:Nx,0:int(Nx/2)+1]
+kx=np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx
+#k = np.fft.fftfreq(Nx, 1./Nx).astype(int)
+ky=np.r_[0:int(Ny/2+1)]*dky
 ```
 
-which actually gives:
+Or in terms of indices which transform the array into a centered one, or a centered array into a non-centered one as:
+
+```py
+inds=np.r_[int(Nx/2):Nx,0:int(Nx/2)]
+```
+
+So that for example we have: (with **uk** shaped as **(n,Nx,Ny)**)
 
 ```
-[ 65 66 ... 126 127 0 1 ... 63 64]
+np.allclose(np.fft.fftshift(uk,1),uk[:,inds,:])
+Out: True
 ```
 
-This puts the zero at a symmetric middle of the range if we drop the last element (i.e. the nyquist mode). All this, means that the wavenumbers can be written as:
+if we somehow want to remove the Nyquist modes:
 
+```py
+uk[:,:,-1]=0
+uk[:,int(Nx/2),:]=0
 ```
-kx=np.r_[0:int(Nx/2)+1,-int(Nx/2)+1:0]*dkx
-ky=np.arange(0:int(Ny/2+1))*dky
+
+in order to see how the padding works, we can try:
+
+```py
+from mpi4py import MPI
+from mpi4py_fft import PFFT,newDistArray, DistArray
+import numpy as np
+import matplotlib.pylab as plt
+
+comm=MPI.COMM_WORLD
+
+n,Nx,Ny=2,8,8
+padx,pady=1.5,1.5
+fft=PFFT(comm,shape=(n,Nx,Ny),axes=(1,2), grid=[1,-1,1], padding=[1,padx,pady],collapse=False)
+fft_nopad=PFFT(comm,shape=(n,int(Nx*padx),int(Ny*pady)),axes=(1,2), grid=[1,-1,1])
+
+uk=DistArray((2,Nx,int(Ny/2+1)),subcomm=(1,0,1),dtype=complex,alignment=2)
+kx=DistArray((Nx,int(Ny/2+1)),subcomm=(0,1),dtype=float,alignment=1)
+ky=DistArray((Nx,int(Ny/2+1)),subcomm=(0,1),dtype=float,alignment=1)
+inds=np.r_[int(Nx/2):Nx,0:int(Nx/2)]
+
+uk[0,:,:]=np.array([[inds[l]+1j*(m+uk.local_slice()[2].start) for m in range(uk.shape[2])] for l in range(uk.shape[1]) ])
+uk[1,:,:]=np.array([[2*inds[l]+1j*(m+uk.local_slice()[2].start+1) for m in range(uk.shape[2])] for l in range(uk.shape[1]) ])
+
+uk[:,:,-1]=0
+uk[:,int(Nx/2),:]=0
+
+u=newDistArray(fft,forward_output=False)
+ukpad=newDistArray(fft_nopad,forward_output=True)
+
+fft.backward(uk,u)
+fft_nopad.forward(u,ukpad)
 ```
--->
+
+If we plot this, we get (with and withour the **uk[:,:,-1]=0** and **uk[:,int(Nx/2),:]=0** lines:
+
+[![pfft_ukpad](/assets/images/pfft_ukpad.svg)](/assets/images/pfft_ukpad.svg)
+
