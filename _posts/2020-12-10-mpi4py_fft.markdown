@@ -18,7 +18,7 @@ It is based on the idea that we can compute 2D ffts by computing 1d ffts in y di
 
 ## Basic Usage:
 
-The basic use of the parallel fft is described [here](https://mpi4py-fft.readthedocs.io/en/latest/parallel.html).
+The basic use of the parallel fft is described [here](https://mpi4py-fft.readthedocs.io/en/latest/parallel.html). There is also a nice minimal example of a pseudo-spectral solver [shown here](https://bitbucket.org/mpi4py/mpi4py-fft/src/master/examples/spectral_dns_solver.py)
 
 However we generally need to perform multiple (e.g. first 6 then 2) 2D ffts on a 3D array. This could be done using lists of course, but it also makes sense to do it using PFFT directly on a 3D array.
 
@@ -99,7 +99,10 @@ the difference become comparable to machine precision.
 
 ## Wavenumbers and FFT
 
-It is clear from the figures above that the mpi4py_fft computes non centered ffts as is usually the case with fft routines. However it seems that it uses a slightly different convention than the **numpy.fft.fftshift** maybe related to how it handles the nyquist mode. For example if we use the usual convention of numpy fft's **fftshift** routine applied to a standard arange from 0 to **Nx=128** we get:
+It is clear from the figures above that the mpi4py_fft computes non centered ffts as is usually the case with fft routines. 
+
+<!---
+However it seems that it uses a slightly different convention than the **numpy.fft.fftshift** maybe related to how it handles the nyquist mode. For example if we use the usual convention of numpy fft's **fftshift** routine applied to a standard arange from 0 to **Nx=128** we get:
 
 ```
 [ 64 65 ... 126 127 0 1 ... 62 63]
@@ -123,3 +126,4 @@ This puts the zero at a symmetric middle of the range if we drop the last elemen
 kx=np.r_[0:int(Nx/2)+1,-int(Nx/2)+1:0]*dkx
 ky=np.arange(0:int(Ny/2+1))*dky
 ```
+-->
