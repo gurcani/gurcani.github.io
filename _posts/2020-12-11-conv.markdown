@@ -1,6 +1,6 @@
 ---
 layout : post
-title : Details of mpi4py-fft
+title : Convolution using mpi4py-fft
 date : 2020-12-11 02:21:00 CET
 math : true
 comments : true
