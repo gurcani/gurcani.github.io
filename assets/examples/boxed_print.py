@@ -22,7 +22,7 @@ def boxed_print(v):
     for lx in range(u.shape[0]):
         for ly in range(u.shape[1]):
             if(np.isclose(u[lx,ly],np.rint(u[lx,ly]))):
-                plt.text(0.5+lx,0.5+ly,'$'+str(int(np.rint(u[lx,ly])))+'$',horizontalalignment='center',verticalalignment='center',fontsize=14)
+                plt.text(0.5+lx,0.5+ly,'$'+str(np.rint(u[lx,ly]))+'$',horizontalalignment='center',verticalalignment='center',fontsize=14)
             else:
                 plt.text(0.5+lx,0.5+ly,'$'+"{:10.2f}".format(u[lx,ly])+'$',horizontalalignment='center',verticalalignment='center',fontsize=14)
     plt.tight_layout()
