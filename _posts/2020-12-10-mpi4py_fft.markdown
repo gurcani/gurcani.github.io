@@ -97,3 +97,29 @@ On the other hand if we perform the Fourier transform and back again and compare
 
 the difference become comparable to machine precision.
 
+## Wavenumbers and FFT
+
+It is clear from the figures above that the mpi4py_fft computes non centered ffts as is usually the case with fft routines. However it seems that it uses a slightly different convention than the **numpy.fft.fftshift** maybe related to how it handles the nyquist mode. For example if we use the usual convention of numpy fft's **fftshift** routine applied to a standard arange from 0 to **Nx=128** we get:
+
+```
+[ 64 65 ... 126 127 0 1 ... 62 63]
+```
+
+however if we plot the **uk** that we compute above and apply this shift we find that the first pixel is actually wrapped aroun. The correct form seems to be
+
+```py
+inds2=np.r_[int(Nx/2)+1:Nx,0:int(Nx/2)+1]
+```
+
+which actually gives:
+
+```
+[ 65 66 ... 126 127 0 1 ... 63 64]
+```
+
+This puts the zero at a symmetric middle of the range if we drop the last element (i.e. the nyquist mode).
+
+```
+kx=np.r_[0:int(Nx/2)+1,-int(Nx/2)+1:0]*dkx
+ky=np.arange(0:int(Ny/2+1))*dky
+```
