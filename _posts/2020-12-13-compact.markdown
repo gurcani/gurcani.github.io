@@ -10,12 +10,11 @@ excerpt_separator : <!--more-->
 image : compravel
 ---
 
-As we have discussed in an [earlier post]({% post_url 2020-12-01-fftw++4 %}), there is a compact representation of the Fourier coefficients that provides what is actually needed for computing a convolution. This can be used to 
-
-- Reduce the number of degrees of freedom of the problem.
-- Guarantee hermitian symmetry
+As we have discussed in an [earlier post]({% post_url 2020-12-01-fftw++4 %}), there is a compact representation of the Fourier coefficients that provides what is actually needed for computing a convolution. This can be used to reduce the number of degrees of freedom of the problem and guarantee hermitian symmetry
 
 However going back and forth between the two may be complicated. We can achieve this in two different ways.
+
+<!--more-->
 
 -Using predefined indices that go back and forth between flattened/reduced indices and explanded ones.
 -Copying or filling the part of the data as needed using explicit conditions to define where the data goes.
