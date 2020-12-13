@@ -7,7 +7,7 @@ comments : true
 categories : python numpy mpi
 tags : python numpy mpi
 excerpt_separator : <!--more-->
-image : compravel
+image : compravel.svg
 ---
 
 As we have discussed in an [earlier post]({% post_url 2020-12-01-fftw++4 %}), there is a compact representation of the Fourier coefficients that provides what is actually needed for computing a convolution. This can be used to reduce the number of degrees of freedom of the problem and guarantee hermitian symmetry
