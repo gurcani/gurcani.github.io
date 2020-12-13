@@ -1,0 +1,134 @@
+---
+layout : post
+title : Compact representation for ffts and convolutions
+date : 2020-12-13 01:24:00 CET
+math : true
+comments : true
+categories : python numpy mpi
+tags : python numpy mpi
+excerpt_separator : <!--more-->
+image : compravel
+---
+
+As we have discussed in an [earlier post]({% post_url 2020-12-01-fftw++4 %}), there is a compact representation of the Fourier coefficients that provides what is actually needed for computing a convolution. This can be used to 
+
+- Reduce the number of degrees of freedom of the problem.
+- Guarantee hermitian symmetry
+
+However going back and forth between the two may be complicated. We can achieve this in two different ways.
+
+-Using predefined indices that go back and forth between flattened/reduced indices and explanded ones.
+-Copying or filling the part of the data as needed using explicit conditions to define where the data goes.
+
+It is not clear if the two choices would reult in a performance difference. The first one requires keeping large index arrays, while the second one has to be done using numba and involves some if conditions that needs to be evaluated ever time.
+
+## Basic Compact Ravel Routine:
+
+Paying attention to parallelization, we can write the basic compact ravel routine, which uses copying with explicit conditions:
+
+```py
+
+def compravel(v,u):
+    last=(u.local_slice[2].stop==u.global_shape[2])
+    first=(u.local_slice[2].start==0)
+    compravel_(v,u,u.shape[2],first,last)
+
+@njit(fastmath=True)
+def compravel_(v,u,Ny,first,last):
+    k=0
+    Nx=u.shape[1]
+    for l in range(u.shape[0]):
+        for i in range(int(Nx/2)):
+            for j in range(Ny-int(last)):
+                v[k]=u[l,i,j]
+                k+=1
+        for i in range(int(Nx/2+1),Nx):
+            for j in range(int(first),Ny-int(last)):
+                v[k]=u[l,i,j]
+                k+=1
+```
+
+which takes a 3D array of sizes (n,Nx,Ny) and creates a 1D array of only necessary values. Notice that the array is still split in the original 3D array as shown in the figure below.
+
+[![compravel](/assets/images/compravel.svg)](/assets/images/compravel.svg)
+
+The inverse function, which takes the compacted flattened array and writes it to an expanded one can be written as:
+
+```py
+def expunravel(v,u):
+    last=(u.local_slice[2].stop==u.global_shape[2])
+    first=(u.local_slice[2].start==0)
+    expunravel_(u,v,u.shape[2],first,last)
+
+@njit(fastmath=True)
+def expunravel_(u,v,Ny,first,last):
+    k=0
+    Nx=u.shape[1]
+    for l in range(u.shape[0]):
+        for i in range(int(Nx/2)):
+            for j in range(Ny-int(last)):
+                u[l,i,j]=v[k]
+                k+=1
+            if last: u[l,i,-1]=0
+        for j in range(Ny): u[l,int(Nx/2),j]=0
+        for i in range(int(Nx/2+1),Nx):
+            if first: u[l,i,0]=u[l,Nx-i,0].real-1j*u[l,Nx-i,0].imag
+            for j in range(int(first),Ny-int(last)):
+                u[l,i,j]=v[k]
+                k+=1
+            if last : u[l,i,-1]=0
+```
+
+In practice given a uk initialized as
+
+```py
+Nx,Ny=8,8
+comm=MPI.COMM_WORLD
+uk=hwdistarray((2,Nx,int(Ny/2+1)),comm=comm,dtype=complex)
+inds=np.r_[int(Nx/2):Nx,0:int(Nx/2)]
+uk[0,:,:]=np.array([[inds[l-1]+1j*m for m in np.r_[uk.local_slice[2]]] for l in np.r_[uk.local_slice[1]]])
+uk[1,:,:]=np.array([[2*inds[l-1]+1j*(m+1) for m in np.r_[uk.local_slice[2]]] for l in np.r_[uk.local_slice[1]]])
+```
+
+we initialize an output vector as:
+```py
+last=(uk.local_slice[2].stop==uk.global_shape[2])
+first=(uk.local_slice[2].start==0)
+Nv=uk.shape[0]*((uk.shape[1]-1)*(uk.shape[2]-int(last))-int(first)*int(Nx/2-1))
+v=np.zeros(Nv,dtype=complex)
+```
+
+and use the functions as:
+
+```py
+compravel(v,uk)
+up=hwdistarray((2,Nx,int(Ny/2+1)),comm=comm,dtype=complex)
+expunravel(v,up)
+```
+
+Here **v** is the flattened compact version of **uk**, and **up** is the expanded one. Note that **up** is Hermitian symmetric and its Nyquist modes are set to zero even if **uk** was not so initially.
+
+In a similar vein, we can define the two functions, that do not care about parallelization (since we can in principle transform the indices to local ones by subtracting the local offset in that direction):
+
+```py
+def indsexpunravel(shape,l):
+    n,Nx,Nyh=shape
+    sz=((Nx-1)*(Nyh-1)-int(Nx/2-1))
+    k=np.int_(l/sz) # zeroth index
+    sch=np.int_((l-k*sz)>=(Nx/2)*(Nyh-1)) # which half?
+    hsz=int(Nx/2)*(Nyh-1) # size of first half
+    i=np.int_((l-k*sz-sch*hsz)/(Nyh-1-sch))+sch*int(Nx/2)+sch
+    j=l-k*sz-sch*hsz-(i-sch*int(Nx/2))*(Nyh-1-sch)+sch*int(Nx/2)
+    return k,i,j
+
+def indscompravel(shape,k,i,j):
+    n,Nx,Nyh=shape
+    sz=((Nx-1)*(Nyh-1)-int(Nx/2-1))
+    hsz=int(Nx/2)*(Nyh-1) # size of first half
+    sch=(i>=Nx/2)
+    outside=((k>n) | (i==Nx/2) | (j>=(Nyh-1)) | ((j==0) & sch))
+    sch=np.int_(sch)
+    l=k*sz+sch*hsz+(i-sch-sch*int(Nx/2))*(Nyh-1-sch)+j-sch
+    l[outside]=-1
+    return l
+```
