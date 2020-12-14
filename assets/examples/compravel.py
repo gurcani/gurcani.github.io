@@ -30,12 +30,13 @@ from hwdistarray import hwdistarray
 def compravel(v,u):
     last=(u.local_slice[2].stop==u.global_shape[2])
     first=(u.local_slice[2].start==0)
-    compravel_(v,u,u.shape[2],first,last)
+    compravel_(v,u,first,last)
 
 @njit(fastmath=True)
-def compravel_(v,u,Ny,first,last):
+def compravel_(v,u,first,last):
     k=0
     Nx=u.shape[1]
+    Ny=u.shape[2]
     for l in range(u.shape[0]):
         for i in range(int(Nx/2)):
             for j in range(Ny-int(last)):
@@ -49,7 +50,7 @@ def compravel_(v,u,Ny,first,last):
 def expunravel(v,u):
     last=(u.local_slice[2].stop==u.global_shape[2])
     first=(u.local_slice[2].start==0)
-    expunravel_(u,v,u.shape[2],first,last)
+    expunravel_(u,v,first,last)
 
 # @njit(fastmath=True)
 # def expunravel2_(u,v,Ny,ny0s):
@@ -67,9 +68,10 @@ def expunravel(v,u):
 #                 k+=1
 
 @njit(fastmath=True)
-def expunravel_(u,v,Ny,first,last):
+def expunravel_(u,v,first,last):
     k=0
     Nx=u.shape[1]
+    Ny=u.shape[1]
     for l in range(u.shape[0]):
         for i in range(int(Nx/2)):
             for j in range(Ny-int(last)):
