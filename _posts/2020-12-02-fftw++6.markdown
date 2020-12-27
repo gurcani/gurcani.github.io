@@ -38,7 +38,7 @@ $$
 \end{equation}
 $$
 
-using centered hermitian symmetric convolutions, which implies wave-vectors of the form:
+where $$u=\partial_{x}\Phi and $$v=\partial_{y}\Phi$$, using centered hermitian symmetric convolutions, which implies wave-vectors of the form:
 
 ```py
 kx=np.arange(-mx+int(xcomp),mx)*dkx
