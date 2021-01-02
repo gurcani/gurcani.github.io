@@ -1,6 +1,6 @@
 ---
 layout : post
-title : Compact representation for ffts and convolutions
+title : Compact representation for FFTs and convolutions
 date : 2020-12-13 01:24:00 CET
 math : true
 comments : true
