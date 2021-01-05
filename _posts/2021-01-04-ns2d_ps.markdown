@@ -1,0 +1,379 @@
+---
+layout : post
+title : A simple pseudo-spectral 2D Navier-Stokes solver
+date : 2021-01-04 11:34:00 CET
+math : true
+comments : true
+categories : python nump turbulence pseudospectral simulation
+tags : python nump turbulence pseudospectral simulation
+excerpt_separator : <!--more-->
+image : vort1.svg
+---
+
+As a starting point for more complex numerical simulations, I propose to write a simple two dimensional pseudospectral Navier-Stokes solver in python. Since the motivation here is to write the simplest such solver, so that we can understand different steps, this will actually be a serial solver. A serial solver can be run on a single machine with multithreading handled by numpy routines. We can also develop a numba version where multithreding can be done explicitly using numba routines. However the simpler numpy version is better for understanding what exactly is going on.
+
+<!--more-->
+
+## Simplest 2D pseudospectral solver in python:
+
+The problem is to solve the two dimensional Navier-Stokes equation [[wikipedia](https://en.wikipedia.org/wiki/Navier%E2%80%93Stokes_equations#Stream_function_for_incompressible_2D_fluid)]:
+
+$$
+\partial_{t}\nabla^{2}\Phi+\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi=\nu\nabla^{4}\Phi+F
+$$
+
+A basic 2D pseudospectral solver can be written in Fourier space. Assuming periodic boundary conditions we can write the equation for the evolution of the Fourier transform of the stream function as follows:
+
+$$
+\partial_{t}\Phi_{k}=\frac{1}{k^{2}}\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi\right]_{k}-\nu k^{2}\Phi_{k}-\frac{F_{k}}{k^{2}}
+$$
+
+Let's start with the imports:
+
+**[navsp2.py](https://github.com/gurcani/navsp2/blob/master/navsp2.py)**
+```py
+import numpy as np
+import scipy.integrate as spi # for ODE solvers
+import h5py as h5 # for saving the results
+from time import time # keeping track of time ellapsed.
+from scipy.stats import norm #for random forcing
+import scipy as sp #using scipy.fft instead of numpy.fft
+```
+
+We need some utility functions:
+
+```py
+def oneover(x): # used for handling 1/ksqr without causing division by zero
+    res=x*0
+    res[x!=0]=1/x[x!=0]
+    return res
+	
+# the hyperviscosity function
+nufn = lambda ksqr,nu=1e-8,nuL=1e-8 : nu*ksqr**2+nuL*oneover(ksqr**4) 
+zeros=np.zeros
+rfft2=sp.fft.rfft2
+irfft2=sp.fft.irfft2
+
+def hsymmetrize(uk): #Hermitian symmetrize a 2D array
+    Nx=uk.shape[0]
+    uk[Nx-1:int(Nx/2):-1,0]=uk[1:int(Nx/2),0].conj()
+    return uk
+
+def zero_nyquist(uk): #Zero out the Nyquist modes in x and y
+    Nx=uk.shape[0]
+    uk[int(Nx/2),:]=0
+    uk[:,-1]=0
+    return uk
+```
+Note that hsymmetrize and zero_nyquist are generally required for computing 2D convolutions as discussed in a number of earlier posts such as [here]({% post_url 2020-11-23-fftw++2 %}) or [here]({% post_url 2020-12-13-compact %}). 
+We use scipy's fft routines, which seem to be slightly faster than those of numpy, but not by much. We could probably accelarate significantly by using [pyfftw](https://github.com/pyFFTW/pyFFTW) instead.
+
+We initialize the problem as follows:
+
+```py
+# We define the padded system size, since padded ffts being 2^n is probably faster
+Npx,Npy=1024,1024
+Nx,Ny=2*np.int_(np.floor((Npx/3,Npy/3))) #actual system size with 2/3 rule
+nu=2e-7   #hyperviscosity
+nuL=1e-8  #hypoviscosity, needed in 2D because of the inverse cascade.
+FA=1e4    #Forcing Amplitude
+#Forcing Range defined in polar coordinates
+frng={'k0':0.4,'dk':0.2,'thk0':np.pi/2,'dthk':np.pi}
+Lx=2*np.pi/0.1    #Box size in X
+Ly=2*np.pi/0.1    #Box size in Y
+t0,t1=0.0,1000.0  #t range 
+dtstep=0.1        #forcing is updated at every dtstep
+dtout=1.0         #hdf file is written at every dtout
+filename='out.h5' #name of the hdf5 file
+```
+
+We use only 1024x1024 resolution since this is a serial (and slow) implementation. Even at this resolution it would take at least a day of computation for this run to reach its final time t1=1000 on a regular workstation.
+
+We also define the following functions, which initialize the linear and the nonlinear coefficient matrices. For this simple problem we could probably use the explicit expressions directly without loosing much speed. But in general it seems, defining them in matrix form makes our computations potentially faster.
+
+```py
+def init_matrices(kx,ky,nu):
+    ksqr=kx**2+ky**2
+    Lnm=zeros(kx.shape,dtype=complex)
+    Nlm=zeros(kx.shape,dtype=float)
+    Lnm=-nufn(ksqr,nu)
+    zero_nyquist(Lnm)
+    Nlm=1.0*oneover(ksqr)*((Nx/Npx)*(Ny/Npy))
+    zero_nyquist(Nlm)
+    return Lnm,Nlm
+
+def init_forcing(kx,ky,frng):
+    k0=frng['k0']
+    thk0=frng['thk0']
+    dk=frng['dk']
+    dthk=frng['dthk']
+    k=np.sqrt(kx**2+ky**2)
+    thk=np.arctan2(ky,kx)
+    Fnm=zeros(kx.shape,dtype=complex)
+    Fnm[:]=FA*((k<k0+dk) & (k>k0-dk) & (thk<thk0+dthk) & (thk>thk0-dthk))
+    return Fnm
+
+```
+
+We then initialize the k-space grid, the serial vectors, and the matrices by calling these functions defined above. We also initialize the [HDF5](https://portal.hdfgroup.org/display/HDF5/HDF5) file, write the parameter values and setup some extendible dataspaces in order to write the solutions as a three dimensional array [t,x,y]. Note that here **uk** actually means **phi_k**.
+
+```py
+#Initializing the k-space grid
+dkx=2*np.pi/Lx
+dky=2*np.pi/Ly
+kx,ky=np.meshgrid(np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx,
+                  np.r_[0:int(Ny/2+1)]*dky,indexing='ij')
+ksqr=kx**2+ky**2
+
+#Intializing the vectors and the matrices that we need
+uk=zeros(kx.shape,dtype=complex)
+Lnm,Nlm=init_matrices(kx,ky,nu)
+Fnm=init_forcing(kx,ky,frng)
+dukdt=zeros(uk.shape,dtype=uk.dtype)
+datk=zeros((4,Npx,int(Npy/2+1)),dtype=complex)
+rdat=zeros((2,Npx,Npy),dtype=float)
+
+#Initializing the HFD5 file
+fl=h5.File(filename,"w",libver='latest')
+grp=fl.create_group("params")
+grp.create_dataset("nu",data=nu)
+grp.create_dataset("nuL",data=nuL)
+grp.create_dataset("Lx",data=Lx)
+grp.create_dataset("Ly",data=Ly)
+grp=fl.create_group("fields")
+ukres=grp.create_dataset("uk",(1,)+uk.shape,maxshape=(None,)+uk.shape,dtype=complex)
+tres=grp.create_dataset("t",(1,),maxshape=(None,),dtype=float)
+fl.swmr_mode = True
+ukres[-1,]=uk
+tres[-1,]=t0
+fl.flush()
+```
+
+In order to use an ODE solver we need to define a right hand side function. Consider for example one of the Runge Kutta solvers in scipy.integrate, the [[RK45](https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.RK45.html)].
+
+```py
+#The ODE RHS function for 2D Navier-Stokes 
+def f(t,y):
+    vk=y.view(dtype=complex).reshape(uk.shape)
+    datk.fill(0)
+    datk[:,np.r_[0:int(Nx/2),Npx-int(Nx/2):Npx],:int(Ny/2)+1]     \
+        =np.array([1j*kx*vk,1j*ky*vk,-1j*kx*ksqr*vk, \
+                   -1j*ky*ksqr*vk])
+    dat=irfft2(datk)
+    rdat=dat[0,]*dat[3,]-dat[1,]*dat[2,]
+    resk=rfft2(rdat)
+    dukdt=Lnm*vk+resk[np.r_[0:int(Nx/2),Npx-int(Nx/2):Npx],:int(Ny/2)+1]*Nlm+Fnm
+    return dukdt.ravel().view(dtype=float)
+```
+
+We also need to save the results in a file. It makes sense to do this using a callback function, even though we will call it by hand in a loop.
+
+```py
+#save results at each dtout
+def saveres(t,y):
+    ukres.resize((ukres.shape[0]+1,)+ukres.shape[1:])
+    tres.resize((tres.shape[0]+1,))
+    ukres[-1,]=y
+    tres[-1,]=t
+    fl.flush()
+```
+
+At which point, we are in a position to intialize the solver and set the initial values of the loop variables. 
+
+```py
+#Initialize the ODE Solver
+r=spi.RK45(f,t0,uk.ravel().view(dtype=float),t1,rtol=1e-8,atol=1e-6,max_step=dtstep)
+print(f"running {__file__}")
+print(f"resolution: {Nx}x{Ny}")
+print(f"parameters: nu={nu}, FA={FA}")
+ct=time()
+print("t=",r.t)
+print(time()-ct,"secs elapsed")
+t=t0
+toldout=t
+toldstep=t
+Fnm0=np.abs(Fnm).copy()
+Fnm[:]=Fnm0*(np.pi*norm.rvs(size=Fnm.shape)+1j*np.pi*norm.rvs(size=Fnm.shape))
+hsymmetrize(Fnm)
+zero_nyquist(Fnm)
+```
+
+The main ODE loop in python then looks like
+
+```py
+#Main ODE solver loop
+while r.status=='running' and r.t < t1:
+    r.step()
+    if(r.t-toldstep>=dtstep):
+        Fnm[:]=Fnm0*(np.pi*norm.rvs(size=Fnm.shape)+1j*np.pi*norm.rvs(size=Fnm.shape))
+        hsymmetrize(Fnm)
+        zero_nyquist(Fnm)
+        t+=dtstep
+        toldstep=t
+        print("t=",t)
+        print(time()-ct,"secs elapsed")
+    if(r.t-toldout>=dtout):
+        dnso=r.dense_output()
+        print("writing t=",t)
+        saveres(t,dnso(t).view(dtype=complex).reshape(uk.shape))
+        toldout=t
+fl.close()
+```
+
+Which keeps stepping the RK45 solver as long as r.t<t1 and the solver did not stop. When it finishes, it closes the HDF5 file.
+
+Once the simulation is over (which would definitely take a few days with this serial and poorly optimized python formulation), we can see the results by doing something like:
+
+```py
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pylab as plt
+import h5py as h5
+fl=h5.File('out1.h5',libver='latest',swmr=True)
+uk=fl['fields/uk']
+Lx=fl['params/Lx'][()]
+Ly=fl['params/Ly'][()]
+Nx=uk.shape[1]
+Ny=(uk.shape[2]-1)*2
+dkx,dky=2*np.pi/Lx,2*np.pi/Ly
+kx,ky=np.meshgrid(np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx,
+                  np.r_[0:int(Ny/2+1)]*dky,indexing='ij')
+ksqr=kx**2+ky**2
+plt.rcParams['figure.figsize'] = [12, 8]
+plt.pcolormesh(np.fft.irfft2(ksqr*uk[-1,]),cmap='hot')
+plt.colorbar()
+fl.close()
+```
+
+this plots the final vorticity field of the simulation in real space. It looks like this
+
+[![vort](/assets/images/vort1.svg)](/assets/images/vort1.svg)
+
+We can change which frame we want by modifying the pcolormesh line. We can also generate an animation. There are many different ways of doing this. If we have no display on the host machine (the machine on which the simulation is running) one way to achieve this  may be to save each frame as a png file and combine them at the end.
+
+```py
+import sys
+import os
+import shutil
+import numpy as np
+import h5py as h5
+import matplotlib as mpl
+mpl.use("Agg")
+import matplotlib.pylab as plt
+from mpi4py import MPI
+comm=MPI.COMM_WORLD
+
+def animate(infl,outfl):
+    fl=h5.File(infl,"r")
+    uk=fl['fields/uk']
+    Lx=fl['params/Lx'][()]
+    Ly=fl['params/Ly'][()]
+    Nx=uk.shape[1]
+    Ny=(uk.shape[2]-1)*2
+    dkx,dky=2*np.pi/Lx,2*np.pi/Ly
+    kx,ky=np.meshgrid(np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx,
+                      np.r_[0:int(Ny/2+1)]*dky,indexing='ij')
+    ksqr=kx**2+ky**2
+    w, h = plt.figaspect(1.0)
+    fig,ax=plt.subplots(1,1,figsize=(w,h))
+    qd0 = ax.imshow(np.fft.irfft2(ksqr*uk[1,]).T,cmap='hot',rasterized=True)
+    fig.colorbar(qd0,ax=ax,format="%.2g", aspect=40,shrink=0.8,pad=0.05)
+    fig.tight_layout()
+    Nt=uk.shape[0]
+    if comm.rank==0:
+        lt=np.arange(Nt)
+        lt_loc=np.array_split(lt,comm.size)
+        if not os.path.exists('_tmpimg_folder'):
+            os.makedirs('_tmpimg_folder')
+    else:
+        lt_loc=None
+    lt_loc=comm.scatter(lt_loc,root=0)
+    
+    for j in lt_loc:
+        print(j)
+        w=np.fft.irfft2(ksqr*uk[j,]).T
+        qd0.set_data(w)
+        vmin,vmax=qd0.get_clim()
+        qd0.set_clim(vmin=min(vmin,w.min()),vmax=max(vmax,w.max()))
+        fig.savefig("_tmpimg_folder/tmpout%04i"%j+".png",dpi=200)#,bbox_inches='tight')
+    comm.Barrier()
+    if comm.rank==0:
+        os.system("ffmpeg -i _tmpimg_folder/tmpout%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart -vf fps=25 "+outfl)
+        shutil.rmtree("_tmpimg_folder")
+    
+def usage_and_exit():
+    if(comm.rank==0):
+        print("usage: python diag.py infile.h5 outfile.mp4");
+    sys.exit()
+
+if(len(sys.argv)!=3):
+    usage_and_exit()
+else:
+    infl=str(sys.argv[1])
+    outfl=str(sys.argv[2])
+    if(os.path.isfile(infl)):
+        animate(infl,outfl)
+    else:
+        usage_and_exit()
+
+```
+
+Similarly, we can compute the wave-number spectrum either in regular, or in logarithmically discretized k-space as:
+
+```py
+import sys
+import os
+import shutil
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pylab as plt
+import h5py as h5
+from mpi4py import MPI
+comm=MPI.COMM_WORLD
+
+def spec(uk,dkx=0.1,dky=0.1,nt=10):
+    Nx=uk.shape[1]
+    Ny=(uk.shape[2]-1)*2
+    kx,ky=np.meshgrid(np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx,
+                      np.r_[0:int(Ny/2+1)]*dky,indexing='ij')
+    ksqr=kx**2+ky**2
+    k0=dkx
+    k1=np.max(kx)
+    dk=dkx/2
+    kn=np.arange(k0,k1,2*dk)
+    k=np.sqrt(ksqr)
+    En=np.zeros(kn.shape)
+    Ek=np.mean(np.abs(uk[-nt:,:,:])**2*ksqr,0)
+    for l in range(kn.shape[0]):
+        En[l]=np.sum(Ek[(k>kn[l]-dk) & (k<kn[l]+dk)])/Nx**2/Ny**2
+    return En,kn
+
+def speclog(uk,dkx=0.1,dky=0.1,g=2.0,nt=10):
+    Nx=uk.shape[1]
+    Ny=(uk.shape[2]-1)*2
+    kx,ky=np.meshgrid(np.r_[0:int(Nx/2),-int(Nx/2):0]*dkx,
+                      np.r_[0:int(Ny/2+1)]*dky,indexing='ij')
+    ksqr=kx**2+ky**2
+    k0=dkx
+    k1=np.max(kx)
+    N=int(np.ceil(np.log(k1/k0)/np.log(g)))
+    kn=k0*g**np.arange(0,N)
+    k=np.sqrt(ksqr)
+    En=np.zeros(kn.shape)
+    Ek=np.mean(np.abs(uk[-nt:,:,:])**2*ksqr,0)
+    for l in range(kn.shape[0]):
+        En[l]=np.sum(Ek[(k>kn[l]/np.sqrt(g)) & (k<kn[l]*np.sqrt(g))])/Nx**2/Ny**2/(np.pi*kn[l]*g)
+    return En,kn
+
+
+fl=h5.File('out1.h5',libver='latest',swmr=True)
+uk=fl['fields/uk']
+En,kn=spec(uk)
+Enl,knl=speclog(uk)
+plt.loglog(kn,En,kn,1e-2*kn**(-3),knl,Enl,'x-')
+fl.close()
+
+```
+
+The resulting k-spectrum looks something like:
+[![kspec](/assets/images/kspec.svg)](/assets/images/kspec.svg)
