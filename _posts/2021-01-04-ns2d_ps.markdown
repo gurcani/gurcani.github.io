@@ -173,9 +173,9 @@ The logical flow of the RHS function can be summerized as follows
 - Multiply the components of the **dat** matrix in order to form the convolution as the **rdat** matrix $$\partial_x\Phi\partial_y\nabla^2\Phi-\partial_y\Phi\partial_x\nabla^2\Phi$$
 - Compute the forward Fourier transform of the **rdat** to get **rdatk**, which is the nonlinear term without the additional 1/ksqr.
 - multiply and add everything together:
- - **uk** multiplied by **Lnm** representing the linear terms in the equation
- - **rdatk** multiplied by **Nlm** representing the nonlinear terms
- - **Fnm** representing forcing.
+  - **uk** multiplied by **Lnm** representing the linear terms in the equation
+  - **rdatk** multiplied by **Nlm** representing the nonlinear terms
+  - **Fnm** representing forcing.
 
 We also need to save the results in a file. It makes sense to do this using a callback function, even though we will call it by hand in a loop.
 
