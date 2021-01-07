@@ -168,8 +168,8 @@ def f(t,y):
 
 The logical flow of the RHS function can be summerized as follows
 
-- Initialize the 4 components of the **datk** array as $$i k_x \Phi _k$$, $$i k_y \Phi _k$$, $$-i k_x k^2\Phi _k$$ and $$i k_y k^2 \Phi _k$$ with padding.
-- Compute inverse Fourier transforms to obtain the **dat** array, as $$\big[\partial_x \Phi$$, \partial_y \Phi, \partial_x \nabla^2 \Phi, \partial_y \nabla^2\Phi\big]$$.
+- Initialize the 4 components of the **datk** array as $$\big[i k_x \Phi _k, i k_y \Phi _k, -i k_x k^2\Phi _k, -i k_y k^2 \Phi _k\big]$$ with padding.
+- Compute inverse Fourier transforms to obtain the **dat** array, as $$\big[\partial_x \Phi, \partial_y \Phi, \partial_x \nabla^2 \Phi, \partial_y \nabla^2\Phi\big]$$.
 - Multiply the components of the **dat** matrix in order to form the convolution as the **rdat** matrix $$\partial_x\Phi\partial_y\nabla^2\Phi-\partial_y\Phi\partial_x\nabla^2\Phi$$
 - Compute the forward Fourier transform of the **rdat** to get **rdatk**, which is the nonlinear term without the additional 1/ksqr.
 - multiply and add everything together:
