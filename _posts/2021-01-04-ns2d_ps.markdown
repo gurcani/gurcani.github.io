@@ -4,8 +4,8 @@ title : A simple pseudo-spectral 2D Navier-Stokes solver
 date : 2021-01-04 11:34:00 CET
 math : true
 comments : true
-categories : python nump turbulence pseudospectral simulation
-tags : python nump turbulence pseudospectral simulation
+categories : python numpy turbulence pseudospectral simulation
+tags : python numpy turbulence pseudospectral simulation
 excerpt_separator : <!--more-->
 image : vort1.svg
 ---
