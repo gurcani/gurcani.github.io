@@ -22,7 +22,7 @@ $$
 \partial_{t}\nabla^{2}\Phi+\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi=\nu\nabla^{4}\Phi+F
 $$
 
-A basic 2D pseudospectral solver can be written in Fourier space. Assuming periodic boundary conditions we can write the equation for the evolution of the Fourier transform of the stream function as follows:
+A simple 2D pseudospectral solver can be written in Fourier space. Assuming periodic boundary conditions we can write the equation for the evolution of the Fourier transform of the stream function as follows:
 
 $$
 \partial_{t}\Phi_{k}=\frac{1}{k^{2}}\left[\hat{\mathbf{z}}\times\nabla\Phi\cdot\nabla\nabla^{2}\Phi\right]_{k}-\nu k^{2}\Phi_{k}-\frac{F_{k}}{k^{2}}
