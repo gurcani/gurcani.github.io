@@ -122,9 +122,3 @@ def f(t,y):
 ```
 
 which basically follows the work flow described above. This version of the solver is almost fully multithreaded as opposed to the numpy version. This version takes slightly over 4 hours to run on a 16 cores workstation with the same resolution as the pure python/numpy case (which took about 2 days).
-
-Here is a movie of the simulation:
-
-<video width="320" height="240" controls>
-  <source src="/assests/out.mp4" type="video/mp4">
-</video>
