@@ -30,7 +30,7 @@ $$
 
 Let's start with the imports:
 
-**[navsp2.py](https://github.com/gurcani/navsp2/blob/master/navsp2.py)**
+**[navsp2.py](https://github.com/gurcani/navsp2/blob/main/navsp2.py)**
 ```py
 import numpy as np
 import scipy.integrate as spi # for ODE solvers
