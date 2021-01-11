@@ -11,7 +11,7 @@ excerpt_separator : <!--more-->
 
 I detailed how to write a basic pseudo-spectral solver in 2D in python in my [previous post]({% post_url 2021-01-04-ns2d_ps %}). In this one, I will talk about how to make it faster using [[Numba](https://numba.pydata.org/)] and [[pyfftw](https://github.com/pyFFTW/pyFFTW)].
 
-As can be seen in my [speed benchmark]({% post_url 2020-09-12-speed %}) for matrix multiplication, numba is indeed very fast.
+As can be seen in my [speed benchmark]({% post_url 2020-12-09-speed %}) for matrix multiplication, numba is indeed very fast.
 
 <!--more-->
 
