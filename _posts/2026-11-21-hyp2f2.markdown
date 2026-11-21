@@ -1,0 +1,150 @@
+---
+layout : post
+title : Using Boost Python and Boost's hypergeometric_pFq to implement a vector 2F2 for a 1D numpy array
+date : 2026-11-21
+categories : python boost coding
+tags : python boost coding
+excerpt_separator <!--more-->
+---
+
+As I was doing some quadrature computations, I realized the moments of the integrals that I wanted to compute could be written explicitly in terms of the hypergeometric functions 2F2. These functions are [already implemented in mpmath](https://mpmath.org/doc/current/functions/hypergeometric.html) using arbitrary precision algebra, and can easily be vectorized. For example one can basically write:
+
+```python
+import mpmath as mp
+import numpy as np
+hyp2f2mp=np.vectorize(lambda a1,a2,b1,b2,z : np.float64(mp.hyp2f2(a1,a2,b1,b2,z)),excluded=['a1','a2','b1','b2'])
+```
+
+However obviously this tends to be slow because of the use of an arbitrary precision library, and transformation back to float64.
+
+[Boost](https://www.boost.org/) has a general implementation of the hypergeometric function called [hypergeometric_pfq](https://www.boost.org/doc/libs/latest/libs/math/doc/html/math_toolkit/hypergeometric/hypergeometric_pfq.html). It also has a nice python interface in the form of [Boost.Python](https://www.boost.org/doc/libs/latest/libs/python/doc/html/index.html).
+
+So, we should be able to use these two together to implement this function, which would probably run much faster.
+
+### Using Boost.Python
+
+The basic tutorial for Boost.Python can be found [here](https://www.boost.org/doc/libs/latest/libs/python/doc/html/tutorial/index.html). However this is incomprehensible, in the usual Boost style. They also use an obscure make system, that I have never heard about. So instead here I will describe how to do the same using [CMake](https://cmake.org/), which I think is somewhat more conventional. But hey, there must be better tutorials for this online, or you can ask an LLM of course.
+
+So for simple hello world I use [this tutorial example](https://github.com/TNG/boost-python-examples/tree/main/01-HelloWorld), which is simple enough, but the CMakeLists.txt in that directory is not very useful. So here I paste below all the files:
+
+**hello.cpp**
+```cpp
+#include <boost/python.hpp>
+namespace p = boost::python;
+char const* greet(){
+   return "hello, world";
+}
+
+BOOST_PYTHON_MODULE(hello){
+    p::def("greet", greet);
+}
+```
+
+**hello.py***
+```python
+import hello
+print (hello.greet())
+```
+
+**CmakeLists.txt**
+```cmake
+cmake_minimum_required(VERSION 3.18)
+project(boost_python_hello LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+set(BoostPythonComponent python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
+
+find_package(Boost REQUIRED COMPONENTS ${BoostPythonComponent})
+Python3_add_library(hello_ext MODULE hello.cpp)
+
+target_link_libraries(hello_ext PRIVATE Boost::${BoostPythonComponent})
+```
+
+It is actually not clear if one needs all that if your python and boost are setup differently. But in my setup, all of this was needed, or cmake would complain. Remember you need to run
+
+```
+cmake CmakeLists.txt
+```
+
+and then run make on the same directory in orther to compile.
+
+### Using Boost Python with numpy to implement hyp2f2
+
+Now, we can use this framework to call the hypergeometric function from boost. In order to vectorize it properly though, we also need to understand how to use numpy arrays in Boost python. But that is reasonably straightforward using the [Boost.Python.Numpy Interface](https://www.boost.org/doc/libs/latest/libs/python/doc/html/numpy/reference/index.html).
+
+So in practice we can do this by writing a c++ wrapper as follows:
+
+**hyp2f2.cpp**
+```cpp
+#include <boost/python/module.hpp>
+#include <boost/python/def.hpp>
+#include "boost/python/numpy.hpp"
+#include <boost/math/special_functions/hypergeometric_pFq.hpp>
+
+namespace p = boost::python;
+namespace np = boost::python::numpy;
+
+np::ndarray hyp2f2vec(double a1, double a2, double b1, double b2, np::ndarray z){
+  int N = z.get_shape()[0]; // works only for 1D array
+  p::tuple shape = p::make_tuple(N);
+  np::dtype dtype = z.get_dtype();
+  np::ndarray res = np::zeros(shape,dtype);
+  double* zz = (double *) z.get_data();
+  for (int l=0; l<N; l++){
+    res[l]=boost::math::hypergeometric_pFq({a1, a2}, {b1, b2}, zz[l], NULL);
+  }
+  return res;
+}
+
+BOOST_PYTHON_MODULE(boosthyp)
+{
+    np::initialize();
+    p::def("hyp2f2vec", hyp2f2vec);
+}
+```
+
+together with the CMakeLists.txt file:
+
+```cmake
+cmake_minimum_required(VERSION 3.18)
+project(boosthyp LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+set(BoostPythonComponent python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR})
+find_package(Boost REQUIRED COMPONENTS ${BoostPythonComponent} numpy)
+
+Python3_add_library(${PROJECT_NAME} MODULE hyp2f2.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::${BoostPythonComponent} Boost::numpy)
+```
+
+which we can call from python for example as:
+
+**test.py**
+```python
+from boosthyp import hyp2f2vec
+import mpmath as mp
+import numpy as np
+from timeit import timeit
+hyp2f2mp=np.vectorize(lambda a1,a2,b1,b2,z : np.float64(mp.hyp2f2(a1,a2,b1,b2,z)),excluded=['a1','a2','b1','b2'])
+
+b=np.arange(0.1,10.0,0.001)
+c=hyp2f2vec(1.0,2.0,3.0,1.0,b)
+c2=hyp2f2mp(1.0,2.0,3.0,1.0,b)
+print(np.all(np.isclose(c,c2)))
+t1=timeit('c=hyp2f2vec(1.0,2.0,3.0,1.0,b)',setup="from __main__ import b,hyp2f2vec",number=1)
+t2=timeit('c2=hyp2f2mp(1.0,2.0,3.0,1.0,b)',setup="from __main__ import b,hyp2f2mp",number=1)
+print(f"boost version runs {t2/t1:.2}x faster.")
+```
+
+this prints out:
+
+```
+True
+boost version runs 6.9x faster.
+```
