@@ -7,7 +7,11 @@ tags : python boost coding
 excerpt_separator : <!--more-->
 ---
 
-As I was doing some quadrature computations, I realized the moments of the integrals that I wanted to compute could be written explicitly in terms of the hypergeometric functions 2F2. These functions are [already implemented in mpmath](https://mpmath.org/doc/current/functions/hypergeometric.html) using arbitrary precision algebra, and can easily be vectorized. For example one can basically write:
+As I was doing some quadrature computations, I realized the moments of the integrals that I wanted to compute could be written explicitly in terms of the hypergeometric functions 2F2. These functions are [already implemented in mpmath](https://mpmath.org/doc/current/functions/hypergeometric.html) using arbitrary precision algebra, and can easily be vectorized. However this tends to be rather slow, so here I discuss how to do that by using Boost Python and the Boost's general hypergeometric function implementation in Python.
+
+<!--more-->
+
+In order to implement a vectorized version of mpmath, to be used on 1d numpy arrays one can basically write:
 
 ```python
 import mpmath as mp
@@ -15,7 +19,7 @@ import numpy as np
 hyp2f2mp=np.vectorize(lambda a1,a2,b1,b2,z : np.float64(mp.hyp2f2(a1,a2,b1,b2,z)),excluded=['a1','a2','b1','b2'])
 ```
 
-However obviously this tends to be slow because of the use of an arbitrary precision library, and transformation back to float64.
+However obviously this tends to be slow because of the use of an arbitrary precision library, and transformation back to float64. One could possibly parallelize that, but a faster implementation could also be parallelized.
 
 [Boost](https://www.boost.org/) has a general implementation of the hypergeometric function called [hypergeometric_pfq](https://www.boost.org/doc/libs/latest/libs/math/doc/html/math_toolkit/hypergeometric/hypergeometric_pfq.html). It also has a nice python interface in the form of [Boost.Python](https://www.boost.org/doc/libs/latest/libs/python/doc/html/index.html).
 
@@ -40,7 +44,7 @@ BOOST_PYTHON_MODULE(hello){
 }
 ```
 
-**hello.py***
+**hello.py**
 ```python
 import hello
 print (hello.greet())
