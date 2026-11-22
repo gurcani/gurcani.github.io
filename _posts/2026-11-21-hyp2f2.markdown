@@ -4,7 +4,7 @@ title : Using Boost Python and Boost's hypergeometric_pFq to implement a vector 
 date : 2026-11-21
 categories : python boost coding
 tags : python boost coding
-excerpt_separator <!--more-->
+excerpt_separator : <!--more-->
 ---
 
 As I was doing some quadrature computations, I realized the moments of the integrals that I wanted to compute could be written explicitly in terms of the hypergeometric functions 2F2. These functions are [already implemented in mpmath](https://mpmath.org/doc/current/functions/hypergeometric.html) using arbitrary precision algebra, and can easily be vectorized. For example one can basically write:
