@@ -92,13 +92,14 @@ namespace p = boost::python;
 namespace np = boost::python::numpy;
 
 np::ndarray hyp2f2vec(double a1, double a2, double b1, double b2, np::ndarray z){
+  double err=0.0;
   int N = z.get_shape()[0]; // works only for 1D array
   p::tuple shape = p::make_tuple(N);
   np::dtype dtype = z.get_dtype();
   np::ndarray res = np::zeros(shape,dtype);
   double* zz = (double *) z.get_data();
   for (int l=0; l<N; l++){
-    res[l]=boost::math::hypergeometric_pFq({a1, a2}, {b1, b2}, zz[l], NULL);
+    res[l]=boost::math::hypergeometric_pFq({a1, a2}, {b1, b2}, zz[l], &err);
   }
   return res;
 }
@@ -113,7 +114,7 @@ BOOST_PYTHON_MODULE(boosthyp)
 together with the CMakeLists.txt file:
 
 ```cmake
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 4.0)
 project(boosthyp LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
